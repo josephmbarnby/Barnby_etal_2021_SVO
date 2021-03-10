@@ -1,5 +1,5 @@
 
-Intentions_Phase1_Joe <- function(par, data, detail=T){
+Intentions_Phase1 <- function(par, data, detail=T){
   
   alpha1  = par[1] #alpha quantifies the subjective benefit of individual return
   beta1   = par[2] #'guilt' (if it is negative, the subjective worth is
@@ -24,13 +24,19 @@ Intentions_Phase1_Joe <- function(par, data, detail=T){
                                data[t,'Option2_PPT'], 
                                data[t,'Option2_Partner']),
                                nrow = 2, ncol = 2)
-    opt1           <- choiceab[,1]/10
-    opt2           <- choiceab[,2]/10
+    
+    if(actual_choice == 1){
+    optI           <- choiceab[,1]
+    optA           <- choiceab[,2]
+    } else {
+    optI           <- choiceab[,2]
+    optA           <- choiceab[,1] 
+    }
     
     #Here is the inequality aversion equation for self and the alternative option
     
-    valuei[t] <- (alpha1 * opt1[1]) + (beta1 * max(opt1[1] - opt2[1],0)) + (gamma1 * max(opt2[1] - opt1[1],0))
-    valuea[t] <- (alpha1 * opt2[2]) + (beta1 * max(opt2[2] - opt1[2],0)) + (gamma1 * max(opt1[2] - opt2[2],0))
+    valuei[t] <- (alpha1 * optI[1]) + (beta1 * max(optI[1] - optI[2],0)) + (gamma1 * max(optI[2] - optI[1],0))
+    valuea[t] <- (alpha1 * optA[1]) + (beta1 * max(optA[1] - optA[2],0)) + (gamma1 * max(optA[2] - optA[1],0))
     
     softValue <- c(valuea[t], valuei[t])
     
