@@ -26,11 +26,11 @@ Intentions_Phase1 <- function(par, data, detail=T){
                                nrow = 2, ncol = 2)
     
     if(actual_choice == 1){
-    optI           <- choiceab[,1]
-    optA           <- choiceab[,2]
+    optI           <- choiceab[,1]/10
+    optA           <- choiceab[,2]/10
     } else {
-    optI           <- choiceab[,2]
-    optA           <- choiceab[,1] 
+    optI           <- choiceab[,2]/10
+    optA           <- choiceab[,1]/10 
     }
     
     #Here is the inequality aversion equation for self and the alternative option
@@ -84,26 +84,14 @@ Intentions_Phase1 <- function(par, data, detail=T){
   
 }
 
-Intentions_PhaseOne_Peter <- function(par, data, detail = T){
-  
-  #original matlab code in comments
+Intentions_PhaseOne_Peter <- function(data, detail = T){
   # how the experimenter learns online about the subject in phase 1
-  #[alpha,beta,gamma] = meshgrid(0:.25:10,0:.25:10,0:.25:10);
-  
-  #alpha_shape_prior <- par[1]
-  #beta_shape_prior  <- par[2]
-  #gamma_shape_prior <- par[3]
-  
+
   alpha <- array(matrix(seq(from = 0, to = 10, by = 0.25), ncol = 41, nrow = 41, byrow = T), dim = c(41, 41, 41), dimnames = list(rep('alpha',41),rep('beta',41),rep('gamma', 41)))
   beta  <- array(t(matrix(seq(from = 0, to = 10, by = 0.25), ncol = 41, nrow = 41, byrow = T)), dim = c(41, 41, 41), dimnames = list(rep('alpha',41),rep('beta',41),rep('gamma', 41)))
   gamma <- array(matrix(1, ncol = 41, nrow = 41), dim = c(41, 41, 41))
   for(i in 1:41) gamma[,,i] <- gamma[,,i] * i
   gamma <- array(gamma, dim = c(41, 41, 41), dimnames = list(rep('alpha',41),rep('beta',41),rep('gamma', 41)))
-  
-  sig   = function(x){1/(1+exp(-x))}
-  
-  #pabg=gampdf(alpha,3,1)*gampdf(beta,4,1)*gampdf(gamma,5,1);
-  #pabg=pabg/sum(pabg(:)); # probability of beta,alpha,gamma
   
   pabg <- dgamma(alpha, 3, 1) * dgamma(beta, 4, 1) * dgamma(gamma, 5, 1)
   pabg <- pabg / sum(as.vector(pabg)); 
@@ -113,7 +101,6 @@ Intentions_PhaseOne_Peter <- function(par, data, detail = T){
   
   for (t in 1:tn){
     
-    #choiceab=[5, 5 ; 9, 1]/10; # choices scaled to 0...1
     choiceab <- matrix(c(data[t,'Option1_PPT'], 
                          data[t,'Option1_Partner'], 
                          data[t,'Option2_PPT'], 
@@ -127,13 +114,14 @@ Intentions_PhaseOne_Peter <- function(par, data, detail = T){
     val2 = alpha*opt2[1] + beta*max(opt2[1]-opt2[2],0) - gamma*max(opt2[2]-opt2[1],0);
     
     actual_choice = data[t, 'Response']
+    softmax       = function(x){1/(1+exp(-x))}
     
     if (actual_choice == 1){
-      pchoose=sig(val1 - val2); # probability of 1
-      pchooseA=sig(val2 - val1); # probability of 2
+      pchoose =softmax(val1 - val2); # probability of 1
+      pchooseA=softmax(val2 - val1); # probability of 2
     } else {
-      pchoose=sig(val2 - val1); # probability of 2
-      pchooseA=sig(val1 - val2); # probability of 1
+      pchoose =softmax(val2 - val1); # probability of 2
+      pchooseA=softmax(val1 - val2); # probability of 1
     }
     
     if(t==1) {newpabg = pchoose*pabg} else {newpabg = pchoose*newpabg}; # Bayes rule
@@ -142,7 +130,7 @@ Intentions_PhaseOne_Peter <- function(par, data, detail = T){
     if(t==1) {newpabgA = pchooseA*pabg} else {newpabgA = pchooseA*newpabgA};
     newpabgA = newpabgA/sum(as.vector(newpabgA)); # so distribution
     
-    ll[t] <- mean(log(pchoose))
+    ll[t] <- median(log(pchoose))
     
   }
   
@@ -153,17 +141,29 @@ Intentions_PhaseOne_Peter <- function(par, data, detail = T){
     return(sum(ll))
     }else{
       
+      alpha_marginal  = rowSums(newpabg) # work out the marginals over the components,
+      beta_marginal   = rowSums(newpabg, dim = 2) %>% colSums()
+      gamma_marginal  = colSums(newpabg) %>% colSums()
+      
+      for(i in 1:length(alpha_marginal)){
+        alpha_marginal[i] <- ifelse(alpha_marginal[i] == 0, 1e-10, alpha_marginal[i])
+         beta_marginal[i] <- ifelse( beta_marginal[i] == 0, 1e-10,  beta_marginal[i])
+        gamma_marginal[i] <- ifelse(gamma_marginal[i] == 0, 1e-10, gamma_marginal[i])
+      }
+      
     output <- data.frame(  
-    alpha_marginalP = rowSums(pabg),# work out the m
-    beta_marginalP  = rowSums(pabg, dim = 2) %>% colSums(),
-    gamma_marginalP = colSums(pabg) %>% colSums(),
-    alpha_marginal  = rowSums(newpabg),# work out the marginals over the components,
-    beta_marginal   = rowSums(newpabg, dim = 2) %>% colSums(),
-    gamma_marginal  = colSums(newpabg) %>% colSums(),
-    alpha_marginalA = rowSums(newpabgA),# work out the marginals over the components,
-    beta_marginalA  = rowSums(newpabgA, dim = 2) %>% colSums(),
-    gamma_marginalA = colSums(newpabgA) %>% colSums()
+    alpha_marginalP = rowSums(pabg),# prior
+    alpha_marginal  = alpha_marginal,# work out the marginals over the components,
+    alpha_shape     = fitdistr(as.numeric(alpha_marginal), "gamma", start=list(shape=1, scale=1))$estimate[1],
+    alpha_scale     = fitdistr(as.numeric(alpha_marginal), "gamma", start=list(shape=1, scale=1))$estimate[2],
+    beta_marginal   = beta_marginal,
+    beta_shape      = fitdistr(as.numeric(beta_marginal), "gamma", start=list(shape=1, scale=1))$estimate[1],
+    beta_scale      = fitdistr(as.numeric(beta_marginal), "gamma", start=list(shape=1, scale=1))$estimate[2],
+    gamma_marginal  = gamma_marginal,
+    gamma_shape     = fitdistr(as.numeric(gamma_marginal), "gamma", start=list(shape=1, scale=1))$estimate[1],
+    gamma_scale     = fitdistr(as.numeric(gamma_marginal), "gamma", start=list(shape=1, scale=1))$estimate[2]
 )   
       return(output)
     }  
+  
 }
