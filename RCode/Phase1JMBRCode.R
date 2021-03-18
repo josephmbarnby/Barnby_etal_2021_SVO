@@ -3,44 +3,137 @@
 
 Intentions_PhaseOne_Peter <- function(par, data, detail = T){
   # how the experimenter learns online about the subject in phase 1
-  library(EnvStats)
   
-  if (par < 6) {par <- c(0,1,0,1,4,1)}
+  alpha_m = par[1]
+  beta_m  = par[2]
+  alpha_sd = par[3]
+  beta_sd  = par[4]
   
-  alpha_shape_prior <- par[1]
-  alpha_scale_prior <- par[2]
-  beta_shape_prior  <- par[3]
-  beta_scale_prior  <- par[4]
-  gamma_shape_prior <- par[5]
-  gamma_scale_prior <- par[6]
+  tn             = length(data[,'Trial'])+1
+  res = 81
+  pab_norm       = rep(NA, tn)
+  actual_choice <- rep(NA, tn)
+  
+  alpha <- matrix(seq(from = -10, to = 10, by = 0.25), ncol = res, nrow = res, byrow = T)
+  beta  <- t(matrix(seq(from = -10, to = 10, by = 0.25), ncol = res, nrow = res, byrow = T))
+  
+  if (length(par) < 6){
+    alpha_p <- alpha
+    beta_p  <- beta  
+  } else {
+    alpha_p <- par[5]
+    beta_p  <- par[6]
+  }
+  
+  pab   <- list()
+  ll    <- rep(NA, tn)
+  simA  <- rep(NA, tn)
+  simab <- matrix(NA, nrow = tn, ncol = 4)
+  
+  #initialise priors
+  pab[[1]]    <- dnorm(alpha, alpha_m, alpha_sd) * 
+                 dnorm(beta,  beta_m, beta_sd) 
+  pab_norm[1] <- sum(as.vector(pab[[1]]))
+  ll[1]       <- NA
+  pab[[1]]    <- pab[[1]] / pab_norm[1] # set prior normalisation
+
+  #iterate over priors
+  for (t in 2:tn){
+    
+    choiceab <- matrix(c(data[t-1,'Option1_PPT'], 
+                         data[t-1,'Option1_Partner'], 
+                         data[t-1,'Option2_PPT'], 
+                         data[t-1,'Option2_Partner']),
+                       nrow = 2, ncol = 2)
+    
+    opt1  = choiceab[,1]/10
+    opt2  = choiceab[,2]/10
+    
+    #Value for each option
+    val1 = alpha_p * opt1[1] + beta_p * max(opt1[1]-opt1[2],0) 
+    val2 = alpha_p * opt2[1] + beta_p * max(opt2[1]-opt2[2],0)
+    
+    actual_choice[t]   = data[t-1, 'Response']
+    sigmoid            = function(x){1/(1+exp(-x))}
+    
+    if (actual_choice[t] == 1){
+      pchoose    = sigmoid(val1 - val2); # probability of 1
+    } else {
+      pchoose    = sigmoid(val2 - val1); # probability of 2
+
+    }
+    
+    pab[[t]]    = pchoose*pab[[t-1]] # Bayes rule
+    pab_norm[t] = sum(as.vector(pab[[t]]))
+    ll[t]       = log(pab_norm[t])
+    pab[[t]]    = pab[[t]]/pab_norm[t]
+
+  
+    if (detail == T){
+      
+    subject_estimate_pchoose1 = sigmoid(val1 - val2);
+    tmp                       = subject_estimate_pchoose1 * pab[[t]];
+    subject_netp1             = sum(as.vector(tmp));
+    subject_netp2             = 1-subject_netp1;
+    
+    simA[t]      <- sample(c(1,2), 1, prob = c(subject_netp1, 1-subject_netp1))
+    simab[t,1:4] <- c(choiceab[,1], choiceab[,2])
+    
+    } else {
+      
+    return(sum(ll[2:19]))
+      
+    }
+  }
+      
+      alpha_marginal  = rowSums(pab[[tn]]) # work out the marginals over the components,
+      beta_marginal   = colSums(pab[[tn]])
+      
+    output <- data.frame(  
+    
+    alpha_marginal  = alpha_marginal,
+    beta_marginal   = beta_marginal,
+    Action          = c(actual_choice, rep(NA, res-tn)),
+    simA            = c(simA, rep(NA, res-tn)),
+    ll              = c(ll, rep(NA, res-tn)),
+    Op1SimPPT       = c(simab[,1], rep(NA, res-tn)),
+    Op1SimPAR       = c(simab[,2], rep(NA, res-tn)),
+    Op2SimPPT       = c(simab[,3], rep(NA, res-tn)),
+    Op2SimPAR       = c(simab[,4], rep(NA, res-tn)),
+    sumll           = rep(sum(ll[2:19]), res)
+)   
+      return(output)
+}  
+
+PhaseOneSims <- function(par, data){
+  
+  alpha_m  = par[1]
+  beta_m   = par[2]
+  alpha_sd = par[3]
+  beta_sd  = par[4]
   
   res = 81
   
-  alpha <- array(  matrix(seq(from = -10, to = 10, by = 0.25), ncol = res, nrow = res, byrow = T), 
-                   dim = c(res, res, res), 
-                   dimnames = list(rep('alpha',res),rep('beta',res),rep('gamma', res)))
-  beta  <- array(t(matrix(seq(from = -10, to = 10, by = 0.25), ncol = res, nrow = res, byrow = T)), 
-                 dim = c(res, res, res), 
-                 dimnames = list(rep('alpha',res),rep('beta',res),rep('gamma', res)))
-  gamma <- array(  matrix(-10, ncol = res, nrow = res), 
-                   dim = c(res, res, res))
-  for(i in 1:res) {x <- seq(from = -10, to = 10, by = 0.25); gamma[,,i] <- x[i]}
-  gamma <- array(gamma, dim = c(res, res, res), dimnames = list(rep('alpha',res),rep('beta',res),rep('gamma', res)))
+  alpha <- matrix(seq(from = -10, to = 10, by = 0.25), ncol = res, nrow = res, byrow = T)
+  beta  <- t(matrix(seq(from = -10, to = 10, by = 0.25), ncol = res, nrow = res, byrow = T))
   
-  pabg <- dnorm(alpha, alpha_shape_prior, alpha_scale_prior) * 
-          dnorm(beta,  beta_shape_prior,  beta_scale_prior) * 
-          dnorm(gamma, gamma_shape_prior, gamma_scale_prior);
+  pab <- dnorm(alpha, alpha_m, alpha_sd) * 
+          dnorm(beta,  beta_m, beta_sd) 
   
-  pabg <- pabg / sum(as.vector(pabg)); 
+  pab <- pab / sum(as.vector(pab)); 
+  newpab = pab #to iterate over
   
-  ll            <- rep(NA, 18)
-  actual_choice <- rep(NA, 18)
-  tn = length(data[,'Trial'])
+  tn = 36
+  
+  ll            <- rep(NA, tn)
+  actual_choice <- ll
   simA          <- ll
+  sigmoid          = function(x){1/(1+exp(-x))}
+  pab_list      = list()
   
   for (t in 1:tn){
-    
-    choiceab <- matrix(c(data[t,'Option1_PPT'], 
+
+   choiceab <- matrix(c(data[t,'Option1_PPT'], 
                          data[t,'Option1_Partner'], 
                          data[t,'Option2_PPT'], 
                          data[t,'Option2_Partner']),
@@ -50,90 +143,49 @@ Intentions_PhaseOne_Peter <- function(par, data, detail = T){
     opt2  = choiceab[,2]/10
     
     #Value for each option
-    val1 = alpha*opt1[1] + beta*max(opt1[1]-opt1[2],0) - gamma*max(opt1[2]-opt1[1],0); 
-    val2 = alpha*opt2[1] + beta*max(opt2[1]-opt2[2],0) - gamma*max(opt2[2]-opt2[1],0);
+    val1 = alpha * opt1[1] + beta * max(opt1[1]-opt1[2],0) 
+    val2 = alpha * opt2[1] + beta * max(opt2[1]-opt2[2],0)
     
     actual_choice[t] = data[t, 'Response']
-    sigmoid          = function(x){1/(1+exp(-x))}
     
-    if (actual_choice[t] == 1){
-      pchoose =sigmoid(val1 - val2); # probability of 1
-    } else {
-      pchoose =sigmoid(val2 - val1); # probability of 2
+    subject_estimate_pchoose1 = sigmoid(val1 - val2);
+    subject_estimate_pchoose2 = sigmoid(val2 - val1);
+    tmp                       = subject_estimate_pchoose1 * newpab;
+    subject_netp1             = sum(as.vector(tmp));
+    subject_netp2             = 1-subject_netp1;
+    
+    simA[t] <- sample(c(1,2), 1, prob = c(subject_netp1, 1-subject_netp1))
+    
+    if (simA[t]==1){
+      ll[t] = log(subject_netp1) # log likelihood 
+      newpab <- subject_estimate_pchoose1 * newpab
+      newpab <- newpab / sum(as.vector(newpab)); 
+    }else{
+      ll[t] = log(1-subject_netp1)
+      newpab <- subject_estimate_pchoose2 * newpab
+      newpab <- newpab / sum(as.vector(newpab)); 
     }
     
-    pabg                      = pchoose*pabg # Bayes rule
-    pabg                      = pabg/sum(as.vector(pabg))
     
   }
+  
+  alpha_marginal  = rowSums(newpab, dim = 2) %>% colSums() # work out the marginals over the components,
+  beta_marginal   = rowSums(newpab)
+  alpha_prior     = rowSums(pab, dim = 2) %>% colSums()# work out the marg
+  beta_prior      = rowSums(pab)
+  
+  output <- data.frame(  
     
-    if (detail == T){
-    #loop over each trial given the model (pabg) and calculate the likelihood of each choice given the model.
-
-    for (t in 1:tn){
-      
-      alpha_marginal  = rowSums(pabg) # work out the marginals over the components,
-      beta_marginal   = rowSums(pabg, dim = 2) %>% colSums()
-      gamma_marginal  = colSums(pabg, dim = 2)
-      
-      choiceab <- matrix(c(data[t,'Option1_PPT'], 
-                           data[t,'Option1_Partner'], 
-                           data[t,'Option2_PPT'], 
-                           data[t,'Option2_Partner']),
-                           nrow = 2, ncol = 2)
-      
-      opt1  = choiceab[,1]/10
-      opt2  = choiceab[,2]/10
-      
-      #Value for each option
-      val1 = alpha_marginal*opt1[1] + beta_marginal*max(opt1[1]-opt1[2],0) - gamma_marginal*max(opt1[2]-opt1[1],0); 
-      val2 = alpha_marginal*opt2[1] + beta_marginal*max(opt2[1]-opt2[2],0) - gamma_marginal*max(opt2[2]-opt2[1],0);
-      
-      actual_choice[t] = data[t, 'Response']
-      
-      subject_estimate_pchoose1 = sigmoid(val1 - val2);
-      tmp                       = subject_estimate_pchoose1 * pabg;
-      subject_netp1             = sum(as.vector(tmp));
-      subject_netp2             = 1-subject_netp1;
-      
-      if (actual_choice[t]==1){
-        ll[t] = log(subject_netp1); # log likelihood 
-        simA[t] <- sample(c(1,2), 1, prob = c(subject_netp1, 1-subject_netp1))
-      }else{
-        ll[t] = log(1-subject_netp1);
-        simA[t] <- sample(c(2,1), 1, prob = c(subject_netp1, 1-subject_netp1))
-      }
-      
-      
-      
-    }
-      
-    }
-
-    if (detail == F){
-      
-
-      
-    return(sum(ll))
-      
-    } else {
-      
-      alpha_marginal  = rowSums(pabg) # work out the marginals over the components,
-      beta_marginal   = rowSums(pabg, dim = 2) %>% colSums()
-      gamma_marginal  = colSums(pabg, dim = 2)
-      
-    output <- data.frame(  
-    
+    alpha_prior     = alpha_prior,
+    beta_prior      = beta_prior,
     alpha_marginal  = alpha_marginal,
     beta_marginal   = beta_marginal,
-    gamma_marginal  = gamma_marginal,
     simA            = c(simA, rep(NA, res-tn)),
     Action          = c(actual_choice, rep(NA, res-tn)),
     ll              = c(ll, rep(NA, res-tn)),
     sumll           = rep(sum(ll), res)
-)   
-      return(output)
-    }  
+  )
+
 }
 
 Intentions_PhaseTwo_Peter <- function(par = 0.5, pri, data, detail = T){
