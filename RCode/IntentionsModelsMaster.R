@@ -97,9 +97,20 @@ Intentions_list_C <- split(Intentions_choice %>% arrange(ID), f = Intentions_cho
 Intentions_guess <- Intentions_guess[which(Intentions_guess$ID != '5edf50e72ef80a1fe0267aeb'),]
 Intentions_list_G <- split(Intentions_guess %>% arrange(ID), f = Intentions_guess$ID)
 
-Intentions_choice <- transform(Intentions_choice,id=as.numeric(factor(Intentions_choice$ID)))
-Intentions_guess <- transform(Intentions_guess,id=as.numeric(factor(Intentions_guess$ID)))
+Intentions_choice <- transform(Intentions_choice %>% arrange(ID),id=as.numeric(factor(Intentions_choice$ID)))
+Intentions_guess <- transform(Intentions_guess %>% arrange(ID),id=as.numeric(factor(Intentions_guess$ID)))
+Intentions_both_matlab  <- rbind(Intentions_choice %>% 
+                                 dplyr::select(1, 3, 7, 35, 38:41, 46, 5, 45) %>% 
+                                 rename(Answer = Real_Answer,
+                                        GuessAction = ChoiceAction),
+                                 Intentions_guess %>%
+                                 dplyr::select(1, 3, 35, 34, 36:39, 46, 5, 45) %>%
+                                   group_by(ID) %>%
+                                   mutate(Trial = 19:54)
+                                 ) %>% arrange(ID) %>% mutate(Answer = ifelse(Trial == 1:18, NA, Answer)) %>%
+  dplyr::select(9, 2, 5:8, 4, 3, 11, 10)
 
+write.csv(Intentions_both_matlab, '/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/Intentions_BothPhase.csv')
 write.csv(Intentions_choice, '/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/Intentions_Phase1.csv')
 write.csv(Intentions_guess, '/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/Intentions_Phase2.csv')
 
@@ -111,81 +122,10 @@ Intentions_list_G <- split(Intentions_guess, Intentions_guess$ID)
 
 registerDoParallel(cores = 6) #choose how many cores in your processor to use for the rest of the script
 
-
-# Reduce local minima -----------------------------------------------------
-
-SANNPhase1_H <- foreach(pt=1:length(Intentions_list_C), .combine = rbind) %dopar% { # multicore function for efficiency
-  
-  tryP                              <- as.numeric(c(0.5, 0.5));
-  data                              <- Intentions_list_C[[pt]]
-  
-  fitAttempt                        <- NA; # clear the decks
-  try(fitAttempt                    <- optim(fn = wrapper_PhaseOne_Heuristic, #change to WSLS for last 4 parm fit
-                                             par = tryP, 
-                                             data = data,
-                                             scbeta0 = -1,
-                                             method = 'SANN'
-  ))
-  
-  loglik                            <- NA; 
-  try( loglik                       <- -wrapper_PhaseOne_Heuristic(fitAttempt$par, 
-                                                                   data, 
-                                                                   scbeta = NA));
-  
-  data.frame(
-    ID     = Intentions_list_C[[pt]][1,'ID'],
-    alpha  = fitAttempt$par[1],
-    beta   = fitAttempt$par[2],
-    lp     = -fitAttempt$value,
-    ll     = loglik,
-    Persec = Intentions_list_C[[pt]][1,'Persec'],
-    ICAR   = Intentions_list_C[[pt]][1,'ICARTot']
-  )
-}
-
-# Optimise Parameters -----------------------------------------------------
-
-OptimPhase1 <- foreach(pt=1:length(Intentions_list_C), .combine = rbind) %dopar% { # multicore function for efficiency
-  
-  tryP                              <- c(1,1) #SANNPhase1[pt,2:4];
-  data                              <- Intentions_list_C[[pt]]
-  
-  try(fitAttempt                    <- optim(fn = wrapper_PhaseOne_Heuristic, 
-                                             par = tryP, 
-                                             data = data,
-                                             scbeta0 = -1)
-  )
-  
-  loglik                            <- NA; 
-  try( loglik                       <- Intentions_PhaseOne_Heuristic(fitAttempt$par, 
-                                                          data, 
-                                                          detail = F));
-  data.frame(
-    ID     = Intentions_list_C[[pt]][1,'ID'],
-    alpha  = fitAttempt$par[1],
-    beta   = fitAttempt$par[2],
-    lp     = -fitAttempt$value,
-    ll     = loglik,
-    Persec = Intentions_list_C[[pt]][1,'Persec'],
-    ICAR   = Intentions_list_C[[pt]][1,'ICARTot']
-  )
-}
-
-ggplot(OptimPhase1 %>% 
-         pivot_longer(2:3, names_to = 'Parameter', values_to = 'Metric') %>%
-         mutate(Persec = ifelse(Persec > 3.66, "High", "Low")))+
-  geom_jitter (aes(Parameter, Metric, color = Persec))+
-  geom_boxplot(aes(Parameter, Metric, fill = Persec), color = 'black', outlier.shape = NA)+
-  ggpubr::stat_compare_means(aes(Parameter, Metric, group = Persec))+
-  tidybayes::theme_tidybayes() +
-  
-ggplot(OptimPhase1)+
-  geom_density(aes(-ll))
-
-
-# Recovery Heuristic ------------------------------------------------------
+# Simulated some data for matlab functions ------------------------------------------------------
 
 simulatedHeur <- list()
+simulatedDat  <- list()
 testDat  <- Intentions_list_C[[1]] %>% dplyr::select(Trial, Option1_PPT, Option1_Partner, Option2_PPT, Option2_Partner, Response)
 
 mysamp <- function(n, m, s, lwr, upr, nnorm) {
@@ -196,6 +136,31 @@ mysamp <- function(n, m, s, lwr, upr, nnorm) {
   }  
   stop(simpleError("Not enough values to sample from. Try increasing nnorm."))
 }
+
+simulatedDat <-  foreach(i = 1:1000, .combine = rbind) %dopar% {
+genpar <- c(mysamp(1, 0, 3, 0, 5, 1000), mysamp(1, 0, 3, -5, 5, 1000), 
+            mysamp(1, 0, 3, 0, 5, 1000), mysamp(1, 0, 3, 0, 5, 1000),
+            mysamp(1, 0, 3, 0, 5, 1000), mysamp(1, 0, 3, -5, 5, 1000), 
+            mysamp(1, 0, 1, 0, 1, 1000))
+data = rbind(as.data.frame(Intentions_list_C[[1]][,c('Response', 'Option1_PPT', 'Option1_Partner', 'Option2_PPT', 'Option2_Partner', 'Trial', 'Real_Answer')]) %>% rename(Answer = Real_Answer) %>% mutate(Answer = ifelse(Answer == "Option 1", 1, 2)),
+             as.data.frame(Intentions_list_G[[1]][,c('Response', 'Option1_PPT', 'Option1_Partner', 'Option2_PPT', 'Option2_Partner', 'Trial', 'Answer')]))
+synD <- Phase1Sim(genpar, rbind(data)) #generate synthetic data
+synD$Trial <- c(1:18, 1:36)
+synD$alpha <- genpar[1]
+synD$beta  <- genpar[2]
+synD$alpha2<- genpar[5]
+synD$beta2 <- genpar[6]
+synD$alphav<- genpar[3]
+synD$betav <- genpar[4]
+synD$zeta  <- genpar[7]
+synD$ppt   <- i
+colnames(synD) <- c('Response', 'prob1', 'Option1_PPT', 'Option1_Partner', 'Option2_PPT', 'Option2_Partner', 'Answer', 'Trial', 'alpha', 'beta', 'alpha2', 'beta2', 'alpha_v', 'beta_v', 'zeta', 'ppt')
+data.frame(
+  synD
+)
+}
+
+write.csv(simulatedDat, '/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/simulatedDat.csv')
 
 simulatedHeur[[i]] <-  foreach(i = 1:1000, .combine = rbind) %dopar% {
   
@@ -243,319 +208,418 @@ ggplot(simulatedHeur_DF) +
   
   patchwork::plot_layout(ncol = 2) + patchwork::plot_annotation(title = 'Mixed Effects Model')
 
+                      ############################################
+                      # Go into MatLab scripts for computational #
+                      # work completed using the CBM functions  ##
+                      ############################################
 
-# Mixed Effect Model HBI --------------------------------------------------
-library(R2OpenBUGS)
-library(rjags)
-library(coda)
-library(MCMCvis)
-library(rstan)
-library(rstanarm)
-library(hBayesDM)
+# Matlab data vis and analysis --------------------------------------------
 
-rstan_options(auto_write = T)
-options(mc.cores = 6)
+# load data from matlab
+library(R.matlab)
+RecData <- readMat('/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/hbi_BFS_RW_8mods.mat')
 
-#Test the model with 10 random synthetic samples
-dat <- list()
-n = 50
-t = 18
-alpha = 2
-beta  = -2
-for (i in 1:n){
-dat[[i]] <- Phase1Sim(c(alpha, beta), rbind(Intentions_list_C[[1]], Intentions_list_C[[1]]))
-}
-dat <- do.call(rbind, dat)
-testDat <- list(N = n, T = t, C = 1, Tsubj = rep(t, n))
-testDat$s1     <- matrix(data = dat$Op1SimPPT, nrow = testDat$N, ncol = testDat$T, byrow = T)
-testDat$o1     <- matrix(data = dat$Op1SimPAR, nrow = testDat$N, ncol = testDat$T, byrow = T)
-testDat$s2     <- matrix(data = dat$Op2SimPPT, nrow = testDat$N, ncol = testDat$T, byrow = T)
-testDat$o2     <- matrix(data = dat$Op2SimPAR, nrow = testDat$N, ncol = testDat$T, byrow = T)
-testDat$choice <- matrix(data = dat$simA,      nrow = testDat$N, ncol = testDat$T, byrow = T)
-testDat$choice <- ifelse(testDat$choice == 1, 0, 1)
+RecData.frequency  <- RecData$cbm[,,1]$output[,,1]$model.frequency
+RecData.exceed     <- RecData$cbm[,,1]$output[,,1]$exceedance.prob
+RecData.p.exceed   <- RecData$cbm[,,1]$output[,,1]$protected.exceedance.prob
+RecData.parameters <- RecData$cbm[,,1]$output[,,1]$parameters
+RecData.groupmeans <- RecData$cbm[,,1]$output[,,1]$group.mean
+RecData.grouperror <- RecData$cbm[,,1]$output[,,1]$group.hierarchical.errorbar
 
-stanMod   <- '/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/StanFSIAmodel.stan'
-nIter     <- 4000
-nWarmup   <- floor(nIter/2)
-nThin     <- 1
-nChains   <- 4
+RecData.groupmeans[[4]][[1]] <- as.data.frame(RecData.groupmeans[[4]][[1]])
+RecData.frequency            <- as.data.frame(RecData.frequency)
+RecData.exceed               <- as.data.frame(RecData.exceed)
+RecData.p.exceed             <- as.data.frame(RecData.p.exceed)
+colnames(RecData.frequency)  <- c('B_6', 'B_shrink', 'B_zeta', 'B_4', 'B_2', 'RW', 'RW_3lrc', 'RW_2lrc')
+colnames(RecData.exceed)     <- c('B_6', 'B_shrink', 'B_zeta', 'B_4', 'B_2', 'RW', 'RW_3lrc', 'RW_2lrc')
+colnames(RecData.p.exceed)   <- c('B_6', 'B_shrink', 'B_zeta', 'B_4', 'B_2', 'RW', 'RW_3lrc', 'RW_2lrc')
+colnames(RecData.groupmeans[[4]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')
+colnames(RecData.parameters[[4]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')
+colnames(RecData.grouperror[[4]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')
+# Transform between 0 and positive integer
+RecData.groupmeans[[4]][[1]][,1] <- (10/(1+exp(-RecData.groupmeans[[4]][[1]][,1])))
+RecData.groupmeans[[4]][[1]][,3] <- exp(RecData.groupmeans[[4]][[1]][,3])
+RecData.groupmeans[[4]][[1]][,4] <- exp(RecData.groupmeans[[4]][[1]][,4])
 
-fittest <- stan(
-  file = stanMod,
-  data = testDat,
-  chains = nChains,
-  warmup = nWarmup,
-  iter = nIter,            
-  seed = 13346563,
-  init = 'random'
-)  
+RecData.parameters[[4]][[1]][,1] <- (10/(1+exp(-RecData.parameters[[4]][[1]][,1])))
+RecData.parameters[[4]][[1]][,3] <- exp(RecData.parameters[[4]][[1]][,3])
+RecData.parameters[[4]][[1]][,4] <- exp(RecData.parameters[[4]][[1]][,4])
 
-plot(fittest, type="trace", fontSize=11, par = c('alpha', 'beta', 'IT'))
-bayesplot::mcmc_trace(x = fittest, pars = c('alpha', 'beta', 'IT'))
-print(fittest)
-plot(fittest, type="trace", fontSize=11, par = c('log_lik'))
+#augment data 
+groupplot <- RecData.groupmeans[[4]][[1]] %>% 
+                        select(alpha_m, alpha_v, beta_m, beta_v) %>%
+                        pivot_longer(1:4, names_to = 'parameter', values_to = 'value') %>%
+                        mutate(sd = RecData.grouperror[[4]][[1]] %>%
+                                 as.data.frame() %>%
+                                 dplyr::select(alpha_m, alpha_v, beta_m, beta_v) %>%
+                                 t(), 
+                               type = c(rep('alpha', 2), rep('beta', 2)),
+                               metric = c('Mean', 'Var', 'Mean', 'Var')) %>%
+                        dplyr::rename(sd = 3)
+RecData.frequency %>%
+  pivot_longer(1:8, names_to = 'model', values_to = 'metric') %>%
+  mutate(type = 'Freqency') -> freq
+RecData.exceed %>%
+  pivot_longer(1:8, names_to = 'model', values_to = 'metric') %>%
+  mutate(type = 'Ex. Probability') -> exprob
+RecData.p.exceed %>%
+  pivot_longer(1:8, names_to = 'model', values_to = 'metric') %>%
+  mutate(type = 'Ex. Probability (Protected)') -> p.exprob
+Rec.data.modelcomp <- rbind(freq, exprob, p.exprob)
 
-drawTest <- rstan::extract(fittest)
-matTest  <- as.data.frame(fittest)
-print(names(drawTest))
-print(names(matTest))
+groupplot.parms <- RecData.parameters[[4]][[1]]%>% 
+  as.data.frame() %>%
+  mutate(id = 1:697) %>%
+  select(alpha_m, alpha_v, beta_m, beta_v, id) %>%
+  pivot_longer(1:4, names_to = 'parameter', values_to = 'value') %>%
+  mutate(type = ifelse(parameter %in% c('alpha_m', 'beta_m'), 'Mean', 'Var'),
+         parameter = ifelse(parameter %in% c('alpha_m', 'alpha_v'), 'alpha', 'beta'))
 
-colSums(drawTest$log_lik)/6000
+Intentions_splice <- Intentions_guess %>% select(
+  id, PartnerPolicy, Control, Sum, Game, Persec, ICARTot, ComLadder, Age, HI, SI, Agency
+) %>%
+  distinct()
 
-ggplot(matTest %>% pivot_longer(`alpha[1]`:`alpha[20]`, names_to = 'PPT', values_to = 'Draws'))+
-  geom_density(aes(Draws, group = PPT), color = 'grey')
-ggplot(matTest %>% pivot_longer(`log_lik[1]`:`log_lik[20]`, names_to = 'log_lik', values_to = 'samples'))+
-  geom_density(aes(samples, group = log_lik), color = 'grey')
-ggplot(matTest %>% pivot_longer(`lp__[1]`:`lp__[20]`, names_to = 'log_lik', values_to = 'samples'))+
-  geom_density(aes(samples, group = log_lik), color = 'grey')
+indivParms <- plyr::join(Intentions_splice, groupplot.parms, by= 'id')
 
-#Fit the model with the full data 
+# Visualisations
+# Model statistics
 
-RealDat <- list(N = 697, T = 18, C = 1, Tsubj = rep(18, 697))
-RealDat$s1     <- matrix(data = Intentions_choice$Option1_PPT,     nrow = RealDat$N, ncol = RealDat$T, byrow = T)
-RealDat$o1     <- matrix(data = Intentions_choice$Option1_Partner, nrow = RealDat$N, ncol = RealDat$T, byrow = T)
-RealDat$s2     <- matrix(data = Intentions_choice$Option2_PPT,     nrow = RealDat$N, ncol = RealDat$T, byrow = T)
-RealDat$o2     <- matrix(data = Intentions_choice$Option2_Partner, nrow = RealDat$N, ncol = RealDat$T, byrow = T)
-RealDat$choice <- matrix(data = Intentions_choice$Response,        nrow = RealDat$N, ncol = RealDat$T, byrow = T)
-RealDat$choice <- ifelse(RealDat$choice == 1, 0, 1)
-
-stanMod   <- '/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/StanFSIAmodel.stan'
-nIter     <- 4000
-nWarmup   <- floor(nIter/2)
-nThin     <- 1
-nChains   <- 4
-
-fit1 <- stan(
-  file = stanMod,
-  data = RealDat,
-  chains = nChains,
-  warmup = nWarmup,
-  iter = nIter,            
-  seed = 13346563,
-  init = 'random'
-)
-
-plot(fit1, type="trace", fontSize=11, par = c('mu_alpha', 'mu_beta', 'mu_IT'))
-bayesplot::mcmc_trace(x = fit1, pars = c('mu_alpha', 'mu_beta', 'mu_IT'))
-summary(fit1)
-plot(fit1, type="trace", fontSize=11, par = c('log_lik'))
-
-drawTest1 <- rstan::extract(fit1)
-matTest1  <- as.data.frame(fit1)
-print(names(drawTest1))
-print(colnames(matTest1))
-ggplot(matTest1 %>% 
-         dplyr::select(`beta[1]`:`beta[697]`)%>% 
-         pivot_longer(`beta[1]`:`beta[697]`, names_to = 'PPT', values_to = 'Draws'))+
-  geom_density(aes(Draws, group = PPT), color = 'grey')
-ggplot(matTest1 %>% 
-         dplyr::select(`mu_p[1]`:`mu_p[3]`) %>%
-         pivot_longer(`mu_p[1]`:`mu_p[3]`, names_to = 'PPT', values_to = 'Draws'))+
-  geom_density(aes(Draws, group = PPT, color = PPT))
+ggplot(groupplot) + 
+  geom_point(data = groupplot %>% filter(parameter %in% c('alpha_m', 'alpha_v')) , aes(metric, value, color = type),size =5, show.legend = F) +
+  geom_point(data = groupplot %>% filter(parameter %in% c('beta_m', 'beta_v')) , aes(metric, value, color = type)  ,size =5, show.legend = F) +
+  geom_pointrange(data = groupplot %>% filter(parameter %in% c('alpha_m', 'alpha_v')) , aes(metric, value, ymin= value-sd, ymax=value+sd))+
+  geom_pointrange(data = groupplot %>% filter(parameter %in% c('beta_m', 'beta_v')) , aes(metric, value, ymin= value-sd, ymax=value+sd))+
+  expand_limits(y=0)+
+  scale_color_manual(values = c('#0097A7', '#9575CD'))+
+  labs(title = 'A | Group Parameter Estimates of the Winning Model')+
+  facet_wrap(~type, scales = 'free', 
+             labeller = label_parsed)+
+  theme_minimal()+
+  theme(axis.title = element_blank(),
+        panel.grid.major.x = element_blank(),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 16),
+        strip.text.x = element_text(size = 18, face = 'bold'))+
   
-# Recovery Bayes -------------------------------------------------------------
-
-res      <- 81; #resolution of posterior
-testDat  <- Intentions_list_C[[1]] %>% dplyr::select(Trial, Option1_PPT, Option1_Partner, Option2_PPT, Option2_Partner, Response)
-#simulatedI18 <- list()
-#simulatedI36 <- list()
-#simulatedI54 <- list()
-#simulatedI72 <- list()
-
-simulatedI18[[i]] <-  foreach(i = 1:1000, .combine = rbind) %dopar% {
+ggplot(groupplot.parms %>% 
+           filter(parameter == 'alpha')) + 
+  geom_density(aes(value, fill = type), alpha = 0.75) +
+  scale_fill_manual(values = c('#0097A7', '#80DEEA'), 
+                    labels = c(expression(alpha[m]), expression(alpha[v])))+
+  expand_limits(x=0)+
+  labs(title = expression(paste('B | Individual ', alpha, ' Density Distr.')))+
+  theme_minimal() +
+  theme(legend.position = c(0.2, 0.8),
+        axis.title = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.title = element_blank(),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 16),
+        strip.text.x = element_text(size = 18, face = 'bold'),
+        legend.text = element_text(size = 14))+
   
-  genpar <- c(mysamp(1, 5, 3, 0, 10, 1000), mysamp(1, 0, 3, -10, 10, 1000))
-  data = as.data.frame(Intentions_list_C[[1]][,c('Response', 'Option1_PPT', 'Option1_Partner', 'Option2_PPT', 'Option2_Partner', 'Trial')])
-  synD <- Phase1Sim(genpar, rbind(data)) #generate synthetic data
-  synD$Trial <- 1:18
-  tn = length(synD$Trial)+1
-  colnames(synD) <- c('Response', 'prob1', 'Option1_PPT', 'Option1_Partner', 'Option2_PPT', 'Option2_Partner', 'Trial')
-
-  output <- Intentions_PhaseOne_Bayes(genpar, data = synD, detail = T, plot = F)
-
-  data.frame(
-    prior     = seq(-10, 10, length.out = res),
-    alphaM    = rep(genpar[1], res),
-    betaM     = rep(genpar[2], res),
-    alphaMrec = output$alpha_marginal,
-    betaMrec  = output$beta_marginal,
-    MAPArec   = output$MAP_A,
-    MAPBrec   = output$MAP_B,
-    pchooseFit= c(NA, synD$prob, rep(NA, res-tn)),
-    pt        = rep(i,res),
-    sumll     = output$sumll,
-    prob      = output$pab_norm
-  )
-}
-
-simulated_DF18    <- do.call(rbind, simulatedI18);simulated_DF18$DF <- '18'
-simulated_DF36    <- do.call(rbind, simulatedI36);simulated_DF36$DF <- '36'
-simulated_DF54    <- do.call(rbind, simulatedI54);simulated_DF54$DF <- '54'
-simulated_DF72    <- do.call(rbind, simulatedI72);simulated_DF72$DF <- '72'
-simulated_DF      <- rbind(simulated_DF18, simulated_DF36, simulated_DF54, simulated_DF72)
-
-BM <- ggplot(simulated_DF18) + 
-  geom_jitter(aes(alphaM, MAPArec), color = 'pink', alpha = 0.1)+
-  geom_smooth(aes(alphaM, MAPArec), color = 'red', method = 'lm')+
-  geom_abline(intercept = 0, slope = 1,  alpha = 0.5)+
-  coord_cartesian(xlim = c(-10, 10), ylim = c(-10, 10))+
-  #facet_wrap(~ DF, ncol = 4)+
-  labs(subtitle = expression(paste(alpha)), x = 'Fit Parameter', y = 'Recovered Parameter')+
-  tidybayes::theme_tidybayes()+theme(title = element_text(size = 18))+
-ggplot(simulated_DF18) + 
-  geom_jitter(aes(betaM, MAPBrec), color = 'light blue', alpha = 0.1)+
-  geom_smooth(aes(betaM, MAPBrec), color = 'blue', method = 'lm')+
-  geom_abline(intercept = 0, slope = 1,  alpha = 0.5)+
-  coord_cartesian(xlim = c(-10, 10), ylim = c(-10, 10))+
-  #facet_wrap(~ DF, ncol = 4)+
-  labs(subtitle = expression(paste(beta)), x = 'Fit Parameter', y = 'Recovered Parameter')+
-  tidybayes::theme_tidybayes()+theme(title = element_text(size = 18))+
+ggplot(Rec.data.modelcomp)+
+  geom_bar(aes(model, metric, fill = type), stat = 'identity', color="black", width = .4, position = 'dodge') +
+  labs(title = 'C | Model Comparison')+
+  scale_fill_brewer(palette = 'Set1')+
+  scale_x_discrete(labels=c(
+    'B_2' = expression(paste(beta[m], "",beta[v])),
+    'B_4' = expression(paste(alpha[m], "", alpha[v], "\n", beta[m], "",beta[v])),
+    'B_6' = expression(paste(alpha[m], alpha[v], "\n",beta[m], "",beta[v], "\n",alpha[m]^2, "",beta[m]^2)), 
+    'B_shrink' = expression(paste(alpha[m], "",alpha[v],"\n", beta[m], "",beta[v], "\n",omega)),
+    'B_zeta' = expression(paste(alpha[m], "",alpha[v], "\n",beta[m],"", beta[v],"\n", zeta)),
+    'RW' = expression(paste(alpha[m],"", beta[m],"\n", tau,"\n", lambda)),
+    'RW_2lrc' = expression(paste(alpha[m],"", beta[m], "\n",tau,"\n", lambda[pos],"", lambda[neg])),
+    'RW_3lrc' = expression(paste(alpha[m],"", beta[m], "\n",tau,"\n", lambda[P], "",lambda[I],"", lambda[C]))
+  ))+
+  theme_minimal()+
+  theme(axis.title = element_blank(),
+        legend.position = c(0.7, 0.7),
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        axis.text.x = element_text(size = 12, angle = 45),
+        strip.text.x = element_text(size = 18, face = 'bold'))+
   
-  patchwork::plot_layout(ncol = 2) + patchwork::plot_annotation(title = "Bayesian Probabilistic Model")
-
-
-# Model Comparison --------------------------------------------------------
-
-LL <- ggplot()+
-  geom_density( data = simulated_DF18, aes(sumll))+
-  geom_vline(xintercept = log(0.5)*18)+
-  coord_cartesian(xlim = c(-15, 0))+
-ggplot()+
-  geom_density( data = simulatedHeur_DF, aes(ll))+
-  geom_vline(xintercept = log(0.5)*18)+
-  coord_cartesian(xlim = c(-15, 0))+
-  patchwork::plot_layout(ncol = 1) & tidybayes::theme_tidybayes()
+ggplot(groupplot.parms %>% 
+           filter(parameter =='beta')) + 
+  geom_density(aes(value, fill = type), alpha = 0.75) +
+  scale_fill_manual(values = c('#303F9F', '#9575CD'), 
+                    labels = c(expression(beta[m]), expression(beta[v])))+
+  labs(title = expression(paste('B | Individual ', beta, ' Density Distr.')))+
+  theme_minimal() +
+  theme(legend.position = c(0.2, 0.8),
+        axis.title = element_blank(),
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        plot.title = element_text(size = 16),
+        axis.text = element_text(size = 16),
+        strip.text.x = element_text(size = 18, face = 'bold'),
+        legend.text = element_text(size = 14))
   
-(BM / MEM) | LL
+ggplot(indivParms) +
+  geom_point(aes(value, Sum, color = PartnerPolicy), alpha = 0.1) +
+  geom_smooth(aes(value, Sum, color = PartnerPolicy), method = 'lm') +
+  coord_cartesian(ylim = c(10, 35))+
+  scale_color_brewer(palette = 'Set1')+
+  facet_wrap(parameter ~ type, 
+             scales = 'free_x',
+             labeller = label_parsed)+
+  ggpubr::stat_cor(aes(value, Sum, color = PartnerPolicy), method = 'spearman', label.y.npc = 0.5, label.x.npc = 'centre', show.legend = F)+
+  labs(title = 'Individual Parameter Estimates by Total Correct Guesses in Phase 2',
+       y = 'Total Correct Guesses',
+       x = 'Parameter Value')+
+  theme_minimal() +
+  theme(legend.position = c(0.1, 0.1), 
+        strip.text.x = element_text(face = 'bold', size = 14),
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14),
+        legend.title = element_text(size =14),
+        legend.text = element_text(size = 14))
 
-# Test Phase 1 Peter Model ------------------------------------------------
-  
-registerDoParallel(cores = 6)
-ptN = length(Intentions_list_C)
-#Test data 
+parmCor <- cor(RecData.parameters[[4]][[1]], method = 'spearman')
+ggcorrplot::ggcorrplot(parmCor, type = 'upper', lab = T)
 
-Phase1DF <- foreach(pt=1:ptN, .combine = rbind) %dopar% {
-  
-  res = 81
-  tryP                              <- c(0, 0, 2, 2)
-  data                              <- Intentions_list_C[[pt]]
+ggplot(indivParms) +
+  geom_point(aes(Persec, value, color = type), alpha = 0.1) +
+  geom_smooth(aes(Persec, value, color = type), method = 'lm') +
+  scale_color_brewer(palette = 'Dark2', direction = -1)+
+  facet_wrap(parameter ~ ., 
+             scale = 'free_y',
+             labeller = label_parsed)+
+  ggpubr::stat_cor(aes(Persec, value, color = type), method = 'spearman', label.y.npc = 0.2, label.x.npc = 'centre', show.legend = F)+
+  theme_minimal() +
+  theme(legend.position = c(0.25, 0.5), 
+        strip.text.x = element_text(face = 'bold', size = 14))+
+  labs(title = 'Persecutory Ideation by Individual Parameter Estimates')
 
-  try(output                        <- Intentions_PhaseOne_Peter(
-                                               par = tryP,
-                                               data = data,
-                                               detail = T))
-  data.frame(
-    ID            = rep(Intentions_list_C[[pt]][1,'ID'], res),
-    prior         = seq(from = -10, to = 10, by = 0.25),
-    alpha_M       = output$alpha_marginal,
-    beta_M        = output$beta_marginal,
-    Action        = output$Action,
-    simA          = output$simA,
-    ll            = output$ll,
-    sumll         = output$sumll,
-    pab_norm      = output$pab_norm,
-    Persec        = rep(Intentions_list_C[[pt]][1,'Persec'], res)
-  )
-} 
+ggplot(indivParms %>% 
+         pivot_longer(10:11, names_to = 'attribute', values_to = 'metric')) +
+  geom_point(aes( value,metric,  color = attribute), alpha = 0.1) +
+  geom_smooth(aes(value,metric, color = attribute), method = 'lm') +
+  scale_color_brewer(palette = 'Dark2', direction = -1, name = 'Attribute')+
+  facet_wrap(parameter ~ type, 
+             scale = 'free_x', 
+             ncol = 4, 
+             labeller = label_parsed)+
+  ggpubr::stat_cor(aes(value,metric,color = attribute), method = 'spearman', label.y.npc = 0.2, label.x.npc = 'left', show.legend = F)+
+  labs(title = 'Attributions by Individual Parameter Estimates',
+       y = 'Value')+
+  theme_minimal() +
+  theme(legend.position = c(0.25, 0.1),
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14),
+        legend.direction = 'horizontal',
+        legend.title = element_text(size =14),
+        legend.text = element_text(size = 14),
+        strip.text.x = element_text(face = 'bold', size = 14))
 
-Phase1DF %>% 
-  group_by(ID) %>% 
-  mutate(
-         Persec_level = ifelse(Persec > 3.66, 'High', 'Low')) %>%
-  pivot_longer(3:4, names_to = 'Parameter', values_to = 'Value')  %>% 
-  ggplot() + 
+# Linear model tests
+library(tidybayes)
+library(brms)
+library(ggdist)
+
+modelConfer1 <- indivParms %>% filter(parameter == 'beta', type == 'Var')
+#model.compare(lm(scale(value) ~ scale(HI) * PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age) + scale(Sum) + Control, data = modelConfer1, na.action = na.fail))
+#model.compare(lm(scale(SI) ~ scale(value) * PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age) + scale(Sum) + Control, data = modelConfer1, na.action = na.fail))
+mc1brmHI1 <- brm(scale(value) ~ scale(HI)  + scale(Persec) + scale(ICARTot) + scale(Age) + scale(Sum) + Control, data = modelConfer1)
+#mc1brmSI <- brm(scale(SI) ~ scale(value) * PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age) + scale(Sum) + Control, data = modelConfer1)
+modelConfer2 <- indivParms %>% filter(parameter == 'beta', type == 'Mean')
+mc1brmHI2 <- brm(scale(value) ~ scale(HI) + scale(Persec) + scale(ICARTot) + scale(Age) + scale(Sum) + Control, data = modelConfer2)
+modelConfer3 <- indivParms %>% filter(parameter == 'alpha', type == 'Var')
+mc1brmHI3 <- brm(scale(value) ~ scale(HI)  + scale(Persec) + scale(ICARTot) + scale(Age) + scale(Sum) + Control, data = modelConfer3)
+modelConfer4 <- indivParms %>% filter(parameter == 'alpha', type == 'Mean')
+mc1brmHI4 <- brm(scale(value) ~ scale(HI)  + scale(Persec) + scale(ICARTot) + scale(Age) + scale(Sum) + Control, data = modelConfer4)
+
+mc1brmHI1$fit %>% 
+  as.data.frame() %>%
+  pivot_longer(1:7, names_to = 'Parameter', values_to = 'value') %>% 
+  mutate(type = 'beta_v') -> Plotmc1brmHI1
+mc1brmHI2$fit %>% 
+  as.data.frame() %>%
+  pivot_longer(1:7, names_to = 'Parameter', values_to = 'value') %>% 
+  mutate(type = 'beta_m') -> Plotmc1brmHI2
+mc1brmHI3$fit %>% 
+  as.data.frame() %>%
+  pivot_longer(1:7, names_to = 'Parameter', values_to = 'value') %>% 
+  mutate(type = 'alpha_v') -> Plotmc1brmHI3
+mc1brmHI4$fit %>% 
+  as.data.frame() %>%
+  pivot_longer(1:7, names_to = 'Parameter', values_to = 'value') %>% 
+  mutate(type = 'alpha_m') -> Plotmc1brmHI4
+
+plotBayes1 <- rbind(Plotmc1brmHI1, Plotmc1brmHI2, Plotmc1brmHI3, Plotmc1brmHI4)
+                  
+#xlabs_1 <- c('Intercept', 'Sum', 'Age', 'HI', 'Value', 'Persec',  'HI x P:C', 'HI x I:C', 'ICAR', 'Control',  'P:C', 'I:C')
+
+ggplot(plotBayes1)+
+  #scale_y_discrete(labels = xlabs_1)+
+  stat_halfeye(aes(value, reorder(Parameter, -value), fill = type)) +
+  scale_fill_brewer(expression(paste('X-Axis ',beta, ' Weight =')), palette = 'Dark2',
+                    labels = c(expression(paste(alpha[m])), 
+                               expression(paste(alpha[v])), 
+                               expression(paste(beta[m])), 
+                               expression(paste(beta[v]))))+
   geom_vline(xintercept = 0)+
-  stat_summary(aes(prior, Value, color = Parameter), geom = 'line')+ 
-  stat_summary(aes(prior, Value*900, color = Parameter), geom = 'line')+
-  geom_bar(aes(prior, Value, fill = Parameter ), stat = 'identity', alpha = 0.5)+
-  scale_fill_discrete( name = "Parameter", labels = c(expression(alpha), expression(beta)))+
-  scale_color_discrete(name = "Parameter", labels = c(expression(alpha), expression(beta)))+
-  labs(x = 'Group Level Posterior Distributions', y = "Parameter Density")+
-  tidybayes::theme_tidybayes()+
-  theme(legend.text = element_text(size = 12), legend.position = c(0.8, 0.8)) +
-  
-Phase1DF %>%
-  dplyr::select(sumll, ID) %>%
-  ggplot() +
-  geom_density(aes(sumll))+
-  geom_vline(xintercept = log(0.5)*18)
+  theme_ggdist()+
+  theme(axis.title.y =element_blank(),
+        axis.title.x =element_blank(),
+        legend.text = element_text(size = 14),
+        legend.position = c(0.2, 0.2))
 
-# Test Phase 2 Peter Experiment -------------------------------------------
+modelConfer5 <- indivParms %>% filter(parameter == 'beta', type == 'Var')
+p1 <- model.compare(lm(scale(Sum) ~ scale(value) + PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age)  + Control, data = modelConfer5, na.action = na.fail))
+modelConfer6 <- indivParms %>% filter(parameter == 'beta', type == 'Mean')
+p2 <- model.compare(lm(scale(Sum) ~ scale(value) + PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age)  + Control, data = modelConfer6, na.action = na.fail))
+modelConfer7 <- indivParms %>% filter(parameter == 'alpha', type == 'Var')
+p3 <- model.compare(lm(scale(Sum) ~ scale(value) + PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age)  + Control, data = modelConfer7, na.action = na.fail))
+modelConfer8 <- indivParms %>% filter(parameter == 'alpha', type == 'Mean')
+p4 <- model.compare(lm(scale(Sum) ~ scale(value) + PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age)  + Control, data = modelConfer8, na.action = na.fail))
 
-Phase1Test_list <- split(Phase1Test %>% arrange(ID), Phase1Test$ID)
-ptN = 20
-Phase2Test <- foreach(pt=1:ptN, .combine = rbind) %dopar% {
-  
-  res = 61
-  
-  tryP                              <- 0.5
-  data                              <- Intentions_list_G[[pt]]
-  
-  try(fitAttempt                     <- optim(Intentions_PhaseTwo_Peter,
-                                             par = tryP,
-                                             data = data,
-                                             pri = pri,
-                                             detail = F, 
-                                             method = 'Brent', 
-                                             lower = 0, 
-                                             upper = 1))
-  
-  output                            <- NA; 
-  try( output                       <- Intentions_PhaseTwo_Peter(
-                                        par = fitAttempt$par,
-                                        pri = pri,
-                                        data = data,
-                                        detail = T))
-  
-  pars_alpha                        <- try(egamma(output$alpha_marginal))
-  pars_beta                         <- try(egamma(output$beta_marginal))
-  pars_gamma                        <- try(egamma(output$gamma_marginal))
-  
-  data.frame(
-    ID        = rep(Intentions_list_C[[pt]][1,'ID'],res),
-    alpha_M   = output$alpha_marginal,
-    beta_M    = output$beta_marginal,
-    gamma_M   = output$gamma_marginal,
-    zeta      = rep(fitAttempt$par[1],res),
-    alpha_sha = rep(pars_alpha$parameters[1],res),
-    alpha_sca = rep(pars_alpha$parameters[2],res),
-    beta_sha  = rep(pars_beta$parameters[1],res),
-    beta_sca  = rep(pars_beta$parameters[2],res),
-    gamma_sha = rep(pars_gamma$parameters[1],res),
-    gamma_sca = rep(pars_gamma$parameters[2],res),
-    #simA      = output$simA,
-    #Action    = output$Action,
-    Persec    = rep(Intentions_list_G[[pt]][1,'Persec'], res),
-    Policy    = rep(Intentions_list_G[[pt]][1,'PartnerPolicy'], res)
-    
-  )
+p1 <- p1 %>% as.data.frame() %>% mutate(parameter = 'beta_var')
+p2 <- p2 %>% as.data.frame() %>% mutate(parameter = 'beta_mean')
+p3 <- p3 %>% as.data.frame() %>% mutate(parameter = 'alpha_var')
+p4 <- p4 %>% as.data.frame() %>% mutate(parameter = 'alpha_mean')
+pAll <- rbind(p1, p2, p3, p4)
+
+ggplot(pAll)+
+  geom_bar(aes(term, estimate, fill = parameter), color = 'black', stat ='identity', position = 'dodge')+
+  geom_errorbar(aes(term, estimate,group = parameter, ymin= conf.low, ymax=conf.high), color = 'black', stat ='identity', position = 'dodge')+
+  labs(title = expression(paste(beta, ' estimates of total correct answers in Phase 2')),
+       y = expression(paste(beta, ' weight')),
+       x = 'Model Term')+
+  scale_x_discrete(labels = c('Intercept', 'Control', 'I:C Policy', 'P:C Policy', 'Age', 'ICAR Score', 'Persec', 'Parm Value'))+
+  scale_fill_manual(values = c('#0097A7', '#80DEEA', '#303F9F', '#9575CD'), name = 'Model Parameter As Predictor',
+                    labels = c(expression(alpha[m]), expression(alpha[v]), expression(beta[m]), expression(beta[v])))+
+  theme_minimal()+
+  theme(legend.position = c(0.7, 0.2),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        plot.title = element_text(size = 16),
+        panel.grid.major.x = element_blank())
+
+# Model Error Check -------------------------------------------------------
+
+
+RecError <- readMat('/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/modelerror.mat')
+
+loglikstats <- data.frame(lik1 = RecError$lik1,
+                          lik2 = RecError$lik2,
+                          ll   = RecError$F,
+                          id   = 1:697)
+
+controlling <- plyr::join(loglikstats, indivParms, by = 'id')
+
+ggplot(controlling %>% 
+         pivot_longer(1:3, names_to = 'll_type', values_to = 'metric'))+
+  geom_density(aes(metric, fill = ll_type), alpha = 0.5)+
+  geom_vline(xintercept = c(log(0.5)*18, log(0.5)*36,log(0.5)*54))+
+  scale_fill_brewer(palette = 'Dark2')+
+  theme_minimal()
+
+probabilities <- matrix(NA, nrow = 697, ncol = 54)
+probabilities.1 <- matrix(NA, nrow =  697, ncol = 18)
+probabilities.2 <- matrix(NA, nrow =  697, ncol = 36)
+simA <- probabilities
+for (i in 1:697){
+  probabilities[i,] <- as.numeric(RecError$action[[i]][[1]])
+  probabilities.1[i,] <- as.numeric(RecError$prob1[[i]][[1]])
+  probabilities.2[i,] <- as.numeric(RecError$prob1[[i]][[1]])
+  simA[i,]<- as.numeric(RecError$simA[[i]][[1]])
 }
 
+probabilities <- as.data.frame(probabilities)
+probabilities.1 <- as.data.frame(probabilities.1)
+probabilities.2 <- as.data.frame(probabilities.2)
+simA <- as.data.frame(simA)
+probabilities$ID <- 1:697
+simA$ID <- 1:697
+probabilities.1$ID <- 1:697
+probabilities.2$ID <- 1:697
+colnames(probabilities) <- c(1:54, 'id')
+colnames(simA) <- c(1:54, 'id')
+colnames(probabilities.1) <- c(1:18, 'id')
+colnames(probabilities.2) <- c(19:54, 'id')
 
-# Combine and visualise ---------------------------------------------------
+probabilities_p <- cbind(probabilities.1, probabilities.2[,1:36])
 
-Phase1Test$Phase <- 1; Phase1Test$Policy<- NA; Phase1Test$zeta <- NA
-Phase2Test$Phase <- 2; 
-Phase1Test <- Phase1Test %>% dplyr::select(names(Phase2Test))
-IDs <- intersect(Phase1Test$ID, Phase2Test$ID)
+probabilities %>% 
+  pivot_longer(1:54, names_to = 'Trial', values_to = 'Action') -> probabilities.edit
+probabilities_p %>% 
+  dplyr::select(1:18, 20:55, id) %>%
+  pivot_longer(1:54, names_to = 'Trial', values_to = 'Probability') -> probabilities.p.edit
+simA %>% 
+  pivot_longer(1:54, names_to = 'Trial', values_to = 'simA') -> simA.edit
+p.plots <- cbind(probabilities.edit, probabilities.p.edit, simA.edit)
 
-phase_complete <- rbind(Phase1Test[Phase1Test$ID %in% IDs, ], Phase2Test)
+p.plots <- p.plots %>% dplyr::select(1, 3, 5, 6, 9)
 
-phase_complete %>% 
-  group_by(ID) %>% 
-  mutate(prior = rep(seq(from = 0, to = 15, by = 0.25),2),
-         Persec_level = ifelse(Persec > 3.66, 'High', 'Low')) %>% 
-  ungroup()%>%
-  ggplot() + 
-  stat_summary(aes(prior, alpha_M, fill = as.factor(Persec_level)), geom = 'ribbon', alpha = 0.1)+
-  stat_summary(aes(prior, alpha_M, color =as.factor(Persec_level)), geom = 'line')+
-  scale_color_brewer(palette = 'Dark2')+
-  facet_wrap(~Phase)+
-  labs(x = 'Group Level Posterior Distributions')+
-  tidybayes::theme_tidybayes()
+run = 1
+if(run ==1){
 
+y1 <- ggplot(controlling %>% 
+         pivot_longer(1:3, names_to = 'll_type', values_to = 'metric'))+
+  geom_density(aes(metric, fill = ll_type), alpha = 0.5)+
+  geom_vline(xintercept = c(log(0.5)*18, log(0.5)*36,log(0.5)*54))+
+  scale_fill_brewer(palette = 'Dark2', labels = c('Phase1', 'Phase2', 'Both'), name = 'Loglikelihood')+
+  labs(y = 'Density',
+       title = 'Population Loglikelihood values')+
+  annotate("text", x = c(log(0.5)*18, log(0.5)*36,log(0.5)*54), y = 0.1, 
+           angle = 90,
+           label = c('log(0.5)*18', 'log(0.5)*36', 'log(0.5)*54'),
+           vjust = 1.5,
+           fontface='bold'
+           )+
+  theme_minimal()+
+  theme(legend.position = c(0.3, 0.8),
+        axis.title.x = element_blank(),
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 14),
+        plot.title = element_text(size = 16),
+        panel.grid.major.x = element_blank(),
+        legend.box.background = element_rect(colour = 'black'))
 
-# Save Image --------------------------------------------------------------
+title = sample(1:697, 1) 
+y2 <- p.plots %>%
+  mutate(Action = ifelse(Action==2, 0, 1),
+         simA   = ifelse(simA==2, 0, 1),
+         Probability = as.numeric(Probability),
+         Trial = as.numeric(Trial)) %>%
+  filter(id == title) %>%
+  pivot_longer(c(2,4), names_to = 'Type', values_to = 'Value') %>%
+  ggplot()+
+  annotate(geom ='rect', xmin = 18, xmax = 54, ymin = 0, ymax = 1, alpha = 0.3, fill = '#D6EAF8')+
+  annotate(geom ='text', x = c(15,21), y=1.1, colour = '#17202A', label = c('Phase1', 'Phase 2'), fontface = 'bold')+
+  geom_line(aes(Trial, Value, linetype = Type, color = Type))+
+  geom_vline(xintercept = 18)+
+  coord_cartesian(xlim = c(0, 54))+
+  scale_y_continuous(breaks = c(0, 0.5, 1))+
+  scale_color_manual(values = c('#2C3E50', '#C0392B'))+
+  labs(x = 'Trial', y = 'Action | Action Probability',
+       title = paste("ID = ",title),
+       subtitle = 'ID randomly drawn from the population')+
+  theme_minimal()+
+  theme(        axis.text = element_text(size = 14),
+                axis.title = element_text(size = 14),
+                plot.title = element_text(size = 16),
+                panel.grid.major.x = element_blank(),
+                panel.grid.minor.y = element_blank(),
+                legend.position = c(0.75, 1.05),
+                legend.direction = 'horizontal',
+                legend.box.background = element_rect(colour = 'black'))
 
-save.image(file = '/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/IntentionsGameAnalysis.RData')
+y1/y2
+}
+  
+# Recovery Analysis -------------------------------------------------------
+
+RecRecovery <- readMat('/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/lap_BFS4_recovery.mat')
+RecFt       <- readMat('/Volumes/GoogleDrive/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/lap_BFS4.mat')
 
