@@ -12,7 +12,7 @@
 
 %% Model
 
-function[F] = FSModel_1_Phase2(parms, data)
+function[lik1, lik2, F, simA, prob1, prob2, rew] = FSModel_1_Phase2_modcheck(parms, data)
 
    % Initialise
 
@@ -23,7 +23,8 @@ beta            = parms(2); % subjects beta for phase 1
     %phase 2 parms
 alpha_v         = parms(3); % subjects prior variance of belief over their partner for alpha
 beta_v          = parms(4); % subjects prior variance of belief over their partner for beta
-
+%param_alpha_v   = 7.5*(1./(1+exp(-alpha_v))); % restrict the variance to above 0
+%param_beta_v    = 7.5*(1./(1+exp(-beta_v)));  % restrict the variance to above 0
 param_alpha_v   = exp(alpha_v); % restrict the variance to above 0
 param_beta_v    = exp(beta_v);  % restrict the variance to above 0
 
@@ -37,9 +38,13 @@ newpabg=newpabg/sum(newpabg(:));
     % initialised dummy values
     
 lik1 = 0;   % likelihood for choices in phase 1
+prob1= zeros(18, 1);
 lik2 = 0;   % likelihood for guesses in phase 2
+prob2= zeros(36, 1);
 T1   = 18;  % trials for phase 1
 T2   = 54;  % trials for phase 2
+simA = zeros(54,1);
+rew  = zeros(54,4);
 
     % Phase 1 choices of the participant
     
@@ -50,18 +55,25 @@ o1 = data(t, 4)/10;
 s2 = data(t, 5)/10;
 o2 = data(t, 6)/10;
 
+rew(t,1) = data(t, 3)/10;
+rew(t,2) = data(t, 4)/10;
+rew(t,3) = data(t, 5)/10;
+rew(t,4) = data(t, 6)/10;
+
 actual_choice = data(t, 7);
 
 val1 = alpha*s1 + beta*max(s1-o1,0) ; 
 val2 = alpha*s2 + beta*max(s2-o2,0) ;
 
+pchoose1=(1./(1+exp(val1 - val2))); % probability of 1
+simA(t) = randsample(2,1,true,[pchoose1, 1-pchoose1]);
+prob1(t) = pchoose1;
+
     if (actual_choice==1)
-        pchoose1=(1./(1+exp(val1 - val2))); % probability of 1
+        lik1 = lik1 + log(pchoose1); % log likelihood of 1
     else
-        pchoose1=(1./(1+exp(val2 - val1))); % probability of 2
+        lik1 = lik1 + log(1-pchoose1);
     end
-    
-lik1 = lik1 + log(pchoose1);
 
 end
 
@@ -77,6 +89,11 @@ s1 = data(t, 3)/10;
 o1 = data(t, 4)/10;
 s2 = data(t, 5)/10;
 o2 = data(t, 6)/10;
+
+rew(t,1) = data(t, 3)/10;
+rew(t,2) = data(t, 4)/10;
+rew(t,3) = data(t, 5)/10;
+rew(t,4) = data(t, 6)/10;
 
 val1 = alpha_2*s1 + beta_2*max(s1-o1,0) ; 
 val2 = alpha_2*s2 + beta_2*max(s2-o2,0) ;
@@ -96,6 +113,10 @@ subject_estimate = data(t, 7); % say the subject thought that the partner would 
         lik2 = lik2 + log(1-subject_adjp1);
     end
 
+prob2(t-18) = subject_adjp1;
+
+simA(t) = randsample(2,1,true,[subject_adjp1(:), 1-subject_adjp1(:)]);
+
 actual_choice = data(t, 8); % what did our partner 'choose'
 
     if (actual_choice==1)
@@ -109,6 +130,8 @@ newpabg = newpabg ./ sum(newpabg(:)); %normalised distribution
 
 end
 
+%alpha_marginal2 = squeeze(sum(newpabg,[1 3])); % work out the marginals over the components
+%beta_marginal2  = squeeze(sum(newpabg,[2 3]))';
 F  = lik1 + lik2 + eps;
 
 end

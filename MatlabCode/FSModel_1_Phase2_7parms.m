@@ -22,15 +22,17 @@ beta            = parms(2); % subjects beta for phase 1
     %phase 2 parms
 alpha_v         = parms(3); % subjects prior variance of belief over their partner for alpha
 beta_v          = parms(4); % subjects prior variance of belief over their partner for beta
-param_alpha_v   = 5*(1./(1+exp(-alpha_v))); % restrict the variance between 0 and 5
-param_beta_v    = 5*(1./(1+exp(-beta_v)));  % restrict the variance between 0 and 5
+%param_alpha_v   = 7.5*(1./(1+exp(-alpha_v))); % restrict the variance between 0 and 5
+%param_beta_v    = 7.5*(1./(1+exp(-beta_v)));  % restrict the variance between 0 and 5
+param_alpha_v   = exp(alpha_v); % restrict the variance between 0 and 5
+param_beta_v    = exp(beta_v);  % restrict the variance between 0 and 5
 
-zeta_m = parms(5);
-zeta   = (1./(1+exp(-zeta_m)));
+%zeta_m = parms(7);
+%zeta   = (1./(1+exp(-zeta_m)));
 
-alpha_null = parms(6);
+alpha_null = parms(5);
 alpha_null = 10*(1./(1+exp(-alpha_null))); % restrict alpha to between 0 and 10
-beta_null  = parms(7);
+beta_null  = parms(6);
 
     % grid for a subjects beliefs over their partner in phase 2
     
@@ -98,10 +100,10 @@ val2 = alpha_2*s2 + beta_2*max(s2-o2,0) ;
 subject_estimate_pchoose1 = (1./(1+exp(val1 - val2)));
 tmp=subject_estimate_pchoose1 .* newpabg;
 subject_netp1 = sum(tmp(:));
-subject_netp2 = 1-sum(tmp(:));
+%subject_netp2 = 1-sum(tmp(:));
 
 % adjust for over/under matching
-subject_adjp1 = subject_netp1^zeta/(subject_netp1^zeta + subject_netp2^zeta);
+subject_adjp1 = subject_netp1; %^zeta/(subject_netp1^zeta + subject_netp2^zeta);
 subject_estimate = data(t, 7); % say the subject thought that the partner would go for 2
 
 if (subject_estimate==1)
@@ -131,6 +133,6 @@ end
 
 %alpha_marginal2 = squeeze(sum(newpabg,[1 3])); % work out the marginals over the components
 %beta_marginal2  = squeeze(sum(newpabg,[2 3]))';
-F  = sum(lik1) + sum(lik2) + eps;
+F  = lik1 + lik2 + eps;
 
 end
