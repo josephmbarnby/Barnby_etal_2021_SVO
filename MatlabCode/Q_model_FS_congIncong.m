@@ -12,20 +12,20 @@
 
 %% Model
 
-function [F] = Q_model_FS_3lrc(parms,data)
+function [F] = Q_model_FS_congIncong(parms,data)
+
+res = 15;
 
 nd_alpha        = parms(1);
 nd_tau          = parms(3);
-nd_lr_p         = parms(4);
-nd_lr_i         = parms(5);
-nd_lr_c         = parms(6);
+nd_lr_c         = parms(4);
+nd_lr_ic        = parms(5);
 
-alpha   = 15*(1./(1+exp(-nd_alpha)));
+alpha   = res*(1./(1+exp(-nd_alpha)));
 beta    = parms(2);
 tau     = exp(nd_tau);
-lr_p    = 1./(1+exp(-nd_lr_p));
-lr_i    = 1./(1+exp(-nd_lr_i));
 lr_c    = 1./(1+exp(-nd_lr_c));
+lr_ic   = 1./(1+exp(-nd_lr_ic));
 
 T1  = 18;
 T2  = T1 + 36 + 1;   %number of trials + 1
@@ -65,6 +65,11 @@ end
 
 for t = (T1+1):T2 
     
+    
+    val1 = (alpha*s1) + (beta*max(s1-o1,0)) ; 
+    val2 = (alpha*s2) + (beta*max(s2-o2,0)) ;
+    
+    action = data(t-1,7);
     choice = data(t-1,9);
     outcome= data(t-1,10);
 
@@ -74,17 +79,19 @@ for t = (T1+1):T2
     pe      = outcome - Q(t,choice);
     
     % update option chosen on this trial for next trial's choice
-    if (choice == 1)
-    Q(t,choice) = Q(t,choice) + (lr_p * pe);  
-    elseif (choice == 2)
-    Q(t,choice) = Q(t,choice) + (lr_i * pe);  
+    if     (action == 1 && val1>val2) 
+        Q(t,choice) = Q(t,choice) + (lr_c * pe);   
+    elseif (action == 2 && val2>val1)   
+        Q(t,choice) = Q(t,choice) + (lr_c * pe);  
     else
-    Q(t,choice) = Q(t,choice) + (lr_c * pe);   
+        Q(t,choice) = Q(t,choice) + (lr_ic * pe);     
     end
-    
+
+    % decay non chosen options
+       
     pr      = (exp(Q(t-1, choice)/tau)/sum(exp(Q(t-1,:)/tau)));
     lik2    = lik2 + log(pr);
-
+    
 end
 
 F = lik1 + lik2 + eps;

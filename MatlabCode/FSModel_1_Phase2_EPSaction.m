@@ -11,24 +11,29 @@
 %   over trials 1:36. 
 
 %% Model
-function[F] = FSModel_1_Phase2_zeta(parms, data)
+
+function[F] = FSModel_1_Phase2_EPSaction(parms, data)
 
    % Initialise
    
-   res = 15;
+   res = 15; % resolution of grid and alpha
 
    %phase 1 parms
 alpha_raw       = parms(1); % subjects alpha for phase 1
-alpha           = res*(1./(1+exp(-alpha_raw))); % restrict alpha to between 0 and 10
+alpha           = res*(1./(1+exp(-alpha_raw)));% restrict alpha to between 0 and 15
 beta            = parms(2); % subjects beta for phase 1
     %phase 2 parms
 alpha_v         = parms(3); % subjects prior variance of belief over their partner for alpha
 beta_v          = parms(4); % subjects prior variance of belief over their partner for beta
+
 param_alpha_v   = exp(alpha_v); % restrict the variance to above 0
 param_beta_v    = exp(beta_v);  % restrict the variance to above 0
 
-zeta_raw = parms(5);
-zeta   = (1./(1+exp(-zeta_raw)));
+%learning rule adjustments
+raw_epsc        = parms(5);
+raw_epsic       = parms(6);
+epsilon_cong    = 1./(1+exp(-raw_epsc));
+epsilon_incong  = 1./(1+exp(-raw_epsic));
 
     % grid for a subjects beliefs over their partner in phase 2
     
@@ -55,8 +60,8 @@ o2 = data(t, 6)/10;
 
 actual_choice = data(t, 7);
 
-val1 = (alpha*s1) + (beta*max(s1-o1,0)) ; 
-val2 = (alpha*s2) + (beta*max(s2-o2,0)) ;
+val1 = alpha*s1 + beta*max(s1-o1,0) ; 
+val2 = alpha*s2 + beta*max(s2-o2,0) ;
 
 pchoose1=(1./(1+exp(-(val1 - val2)))); % probability of 1
     
@@ -81,31 +86,38 @@ o1 = data(t, 4)/10;
 s2 = data(t, 5)/10;
 o2 = data(t, 6)/10;
 
-val1 = (alpha_2*s1) + (beta_2*max(s1-o1,0)) ; 
-val2 = (alpha_2*s2) + (beta_2*max(s2-o2,0)) ;
+val1    = alpha_2 * s1 + beta_2 * max(s1-o1,0) ; 
+val2    = alpha_2 * s2 + beta_2 * max(s2-o2,0) ;
+val1ppt = alpha * s1 + beta * max(s1-o1,0) ; 
+val2ppt = alpha * s2 + beta * max(s2-o2,0) ;
 
 subject_estimate_pchoose1 = (1./(1+exp(-(val1 - val2))));
 tmp=subject_estimate_pchoose1 .* newpabg;
 subject_netp1 = sum(tmp(:));
-subject_netp2 = 1-sum(tmp(:));
 
-% adjust for over/under matching
-subject_adjp1 = subject_netp1^zeta/(subject_netp1^zeta + subject_netp2^zeta);
-subject_estimate = data(t, 7); % say the subject thought that the partner would go for 2
-
-if (subject_estimate==1)
-    lik2 = lik2 + log(subject_adjp1); % log likelihood 
-else
-    lik2 = lik2 + log(1-subject_adjp1);
-end
+subject_estimate = data(t, 7); % subject choice
+    
+    if (subject_estimate==1)
+        lik2 = lik2 + log(subject_netp1); % log likelihood 
+    else
+        lik2 = lik2 + log(1-subject_netp1);
+    end
 
 actual_choice = data(t, 8); % what did our partner 'choose'
 
-if (actual_choice==1)
-    pchoose2=(1./(1+exp(-(val1 - val2)))); % probability of 1
-else
-    pchoose2=(1./(1+exp(-(val2 - val1)))); % probability of 2
-end
+    if      actual_choice == 1 && val1ppt > val2ppt
+        pchoose1_raw = (1-epsilon_cong)   * (1./(1+exp(-(val1 - val2)))) + (epsilon_cong/2);
+    elseif  actual_choice == 2 && val2ppt > val1ppt
+        pchoose1_raw = (1-epsilon_cong)   * (1./(1+exp(-(val1 - val2)))) + (epsilon_cong/2);
+    else
+        pchoose1_raw = (1-epsilon_incong) * (1./(1+exp(-(val1 - val2)))) + (epsilon_incong/2);
+    end
+
+    if (actual_choice==1)
+        pchoose2 = pchoose1_raw; % probability of 1
+    else 
+        pchoose2 = 1-pchoose1_raw; % probability of 2
+    end
 
 newpabg = pchoose2.*newpabg; % Bayes rule
 newpabg = newpabg ./ sum(newpabg(:)); %normalised distribution
