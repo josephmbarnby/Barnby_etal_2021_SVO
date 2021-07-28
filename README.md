@@ -1,5 +1,7 @@
 # IntentionsGameModel
-Models and data describing participant performance in the Intentions Game
+Models and data describing participant performance in Barnby et al., 2021.
+
+![alt text](https://github.com/josephmbarnby/Barnby_etal_2021_SVO/edit/main/SVOAbstract.png?raw=true)
 
 # Models
 
