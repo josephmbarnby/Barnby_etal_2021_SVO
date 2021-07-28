@@ -1,7 +1,7 @@
 # IntentionsGameModel
 Models and data describing participant performance in Barnby et al., 2021.
 
-![alt text](https://github.com/josephmbarnby/Barnby_etal_2021_SVO/edit/main/SVOAbstract.png?raw=true)
+![alt text](https://github.com/josephmbarnby/Barnby_etal_2021_SVO/edit/main/GraphicalAbstractAlternative.png?raw=true)
 
 # Models
 
