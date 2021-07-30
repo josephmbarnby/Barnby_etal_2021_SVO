@@ -15,7 +15,7 @@ Modelling requires the installation of the 'parfor' function in the parralell to
 
 Approximate time commitment for fitting 697 participants using 8 cores:
 
-<i> machine specs:  MacBook Pro 2.6 GhZ 6-Core (12 virtual cores) Intel Core i7 machine, 16GB DDR4 RAM </i>
+<i> machine specs:  MacBook Pro 2.6 GhZ 6-Core (12 virtual cores) Intel Core i7, 16GB DDR4 RAM </i>
 
  - heuristic model fitting (4-6 parameters) ~ 1 hour
  - 4 parameter Bayes model laplace approximation ~ 6 hours
@@ -29,3 +29,5 @@ Approximate time commitment for fitting 697 participants using 8 cores:
 The winning model is imported into the .R script to test and assess.
 All visualisations and regression models are completed with this script.
 Required packages for each analyses are loaded and listed at the start.
+
+<i>NB: Graphical abstract and Figure 1 made using Adobe Illustrator </i>
