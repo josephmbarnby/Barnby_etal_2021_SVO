@@ -16,7 +16,11 @@ ID | Trial | Option1 Self | Option1 Other | Option2 Self | Option2 Other | PPT C
 ... | ... | ... | ... | ... | ... | ... | ... | ... | ...
 1 | 54 | 6 | 2 | 8 | 5 | 2 | 1 | 2 | 0
 
-Matlab files of models to enable the CBM (Piray et al., 2018) function. Each model is contained in a single .m file.
+
+
+Matlab files of models to enable the CBM (Piray et al., 2018) function - for a guide on how to use these series of useful function, see Payam's useful guide online here https://payampiray.github.io/cbm.
+
+Each model is contained in a single .m file.
 
 Each model is fitted using Laplace approximation and concurrently compaired in the Master '.m' file.
 
