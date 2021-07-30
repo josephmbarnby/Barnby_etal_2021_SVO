@@ -11,13 +11,16 @@ Each model is fitted using Laplace approximation and concurrently compaired in t
 
 Modelling requires the installation of the 'parfor' function in the parralell toolbox in Matlab. 
 
-<b> NB: Model fitting for the Bayesian models will take a long time. </b> Adjust your expectations accordingly. Approximate lengths for fitting 697 participants:
+<b> NB: Model fitting for the Bayesian models will take a long time. </b> Adjust your expectations accordingly. 
 
- - Machine Specs: MacBook Pro 2.6 GhZ 6-Core (12 virtual cores) Intel Core i7 machine, 16GB DDR4 RAM
- - Time taken for heuristic model fitting (4-6 parameters) ~ 1 hour
- - Time taken for a 4 parameter Bayes model laplace approximation ~ 6 hours
- - Time taken for a 5 parameter Bayes model laplace approximation ~ 9 hours
- - Time taken for a 6 parameter Bayes model laplace approximation ~ 12-14 hours
+Approximate time commitment for fitting 697 participants using 8 cores:
+
+<i> machine specs:  MacBook Pro 2.6 GhZ 6-Core (12 virtual cores) Intel Core i7 machine, 16GB DDR4 RAM </i>
+
+ - heuristic model fitting (4-6 parameters) ~ 1 hour
+ - 4 parameter Bayes model laplace approximation ~ 6 hours
+ - 5 parameter Bayes model laplace approximation ~ 9 hours
+ - 6 parameter Bayes model laplace approximation ~ 12-14 hours
  - Concurrent Bayesian fitting for all model ~ 96+ hours
  - Concurrent Bayesian fitting & null model fitting for the final 3 selected models ~ 12 hours
 
