@@ -24,6 +24,8 @@ Approximate time commitment for fitting 697 participants using 8 cores:
  - Concurrent Bayesian fitting for all model ~ 96+ hours
  - Concurrent Bayesian fitting & null model fitting for the final 3 selected models ~ 12 hours
 
+If you figure out a script to connect to a cluster to run these analyses this would be probably optimal for your time and your sanity, and please share with me if possible so I can add it! :)
+
 # Analysis
 
 The winning model is imported into the .R script to test and assess.
