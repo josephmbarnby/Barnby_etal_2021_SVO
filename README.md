@@ -5,6 +5,17 @@ Models and data describing participant performance in Barnby et al., 2021.
 
 # Models
 
+Data structure required for models are like so
+
+ID | Trial | Option1-Self | Option1-Other | Option2-Self | Option2-Other | PPT Choice/Prediction | Partner Answer | PPT Choice Categorical | Correct
+------------ | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | -------------
+1 | 1 | 8 | 8 | 8 | 5 | 1 | - | 1 | -
+... | ... | ... | ... | ... | ... | ... | - | ... | -
+1 | 18 | 10 | 6 | 8 | 2 | 1 | - | 2 | -
+1 | 19 | 7 | 7 | 10 | 6 | 1 | 1 | 1 | 1
+... | ... | ... | ... | ... | ... | ... | ... | ... | ...
+1 | 54 | 6 | 2 | 8 | 5 | 2 | 1 | 2 | 0
+
 Matlab files of models to enable the CBM (Piray et al., 2018) function. Each model is contained in a single .m file.
 
 Each model is fitted using Laplace approximation and concurrently compaired in the Master '.m' file.
