@@ -11,13 +11,13 @@ library(dplyr)
 library(ggplot2)
 library(ggrepel)
 
-source("Functions.R")
+source("RCode/Functions.R")
 
 #load data
 
-Intentions <- read.csv("Intentions_BothPhase.csv")
-Intentions_choice <- read.csv("Intentions_Phase1.csv")
-Intentions_guess  <- read.csv("Intentions_Phase2.csv")
+Intentions <- read.csv("Data/Intentions_BothPhase.csv")
+Intentions_choice <- read.csv("Data/Intentions_Phase1.csv")
+Intentions_guess  <- read.csv("Data/Intentions_Phase2.csv")
 # Summary stats and behav models ------------------------------------------
 
 #test summaries Intentions
@@ -31,7 +31,7 @@ model1 <- Intentions_guess %>%
     Sex = ifelse(Sex == "Male", 1, 0),
     PartnerPolicy = factor(
       PartnerPolicy,
-      levels = c( "Individualist", "Competative", "Prosocial"),
+      levels = c( "Prosocial", "Individualist", "Competative"),
       ordered = F
     )
   ) %>%
@@ -39,7 +39,7 @@ model1 <- Intentions_guess %>%
 
 #visualise the density
 mu1 <-
-  plyr::ddply(Intentions,
+  plyr::ddply(Intentions_guess,
               c("PartnerPolicy"),
               summarise,
               grp.mean = median(Sum))

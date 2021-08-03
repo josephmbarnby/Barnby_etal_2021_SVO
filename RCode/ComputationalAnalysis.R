@@ -14,16 +14,16 @@ library(foreach)
 library(R.matlab)
 library(patchwork)
 
-source("Functions.R")
-source("Phase1SimulationR.R")
+source("RCode/Functions.R")
+source("RCode/Phase1SimulationR.R")
 
 registerDoParallel(cores = 6) #choose how many cores in your processor to use for the rest of the script
 
 #load data ####
 
-Intentions_BothPhase <- read.csv('Intentions_BothPhase.csv')
-Intentions_choice    <- read.csv('Intentions_Phase1.csv')
-Intentions_guess     <- read.csv('Intentions_Phase2.csv')
+Intentions_BothPhase <- read.csv('Data/Intentions_BothPhase.csv')
+Intentions_choice    <- read.csv('Data/Intentions_Phase1.csv')
+Intentions_guess     <- read.csv('Data/Intentions_Phase2.csv')
 
 ## List of CSV files for other software
 
@@ -97,44 +97,26 @@ simulatedHeur[[i]] <-  foreach(i = 1:1000, .combine = rbind) %dopar% {
 
 simulatedHeur_DF <- do.call(rbind, simulatedHeur)
 
-MEM <- ggplot(simulatedHeur_DF) +
-  geom_jitter(aes(alphaM, alphaMrec), color = 'pink', alpha = 0.5)+
-  geom_smooth(aes(alphaM, alphaMrec), color = 'red', method = 'lm')+
-  geom_abline(intercept = 0, slope = 1,  alpha = 0.5)+
-  coord_cartesian(xlim = c(-10, 10), ylim = c(-10, 10))+
-  labs(subtitle = expression(paste(alpha)), x = 'Fit Parameter', y = 'Recovered Parameter')+
-  tidybayes::theme_tidybayes()+theme(title = element_text(size = 18))+
-ggplot(simulatedHeur_DF) +
-  geom_jitter(aes(betaM, betaMrec), color = 'light blue', alpha = 0.5)+
-  geom_smooth(aes(betaM, betaMrec), color = 'blue', method = 'lm')+
-  geom_abline(intercept = 0, slope = 1,  alpha = 0.5)+
-  coord_cartesian(xlim = c(-10, 10), ylim = c(-10, 10))+
-  labs(subtitle = expression(paste(beta)), x = 'Fit Parameter', y = 'Recovered Parameter')+
-  tidybayes::theme_tidybayes()+theme(title = element_text(size = 18))+
-
-  patchwork::plot_layout(ncol = 2) + patchwork::plot_annotation(title = 'Mixed Effects Model')
-
-
                       # Go into MatLab scripts for computational #
                       # work completed using the CBM functions  ##
 
 # Simple BIC Compare ------------------------------------------------------
 library(R.matlab)
 
-RecData2Parm    <- readMat('lap_Model1.mat')
-RecData4Parm    <- readMat('lap_Model2.mat')
-RecData2ParmIgn <- readMat('lap_Model3.mat')
-RecDataShrink   <- readMat('lap_Model4.mat')
-RecDataZeta     <- readMat('lap_Model5.mat')
-RecData5ParmFav <- readMat('lap_Model6.mat')
-RedData6ParmEPS2<- readMat('lap_Model7.mat')
-RecData6ParmEPS1<- readMat('lap_Model8.mat')
-RecData6ParmACT <- readMat('lap_Model9.mat')
-RecData6ParmNULL<- readMat('lap_Model10.mat')
-RecDataRW4      <- readMat('lap_Model11.mat')
-RecDataRW5UpDown<- readMat('lap_Model12.mat')
-RecDataRW53lrc  <- readMat('lap_Model13.mat')
-RecDataRW5      <- readMat('lap_Model14.mat')
+RecData2Parm    <- readMat('LaplaceFittedModels/lap_Model1.mat')
+RecData4Parm    <- readMat('LaplaceFittedModels/lap_Model2.mat')
+RecData2ParmIgn <- readMat('LaplaceFittedModels/lap_Model3.mat')
+RecDataShrink   <- readMat('LaplaceFittedModels/lap_Model4.mat')
+RecDataZeta     <- readMat('LaplaceFittedModels/lap_Model5.mat')
+RecData5ParmFav <- readMat('LaplaceFittedModels/lap_Model6.mat')
+RedData6ParmEPS2<- readMat('LaplaceFittedModels/lap_Model7.mat')
+RecData6ParmEPS1<- readMat('LaplaceFittedModels/lap_Model8.mat')
+RecData6ParmACT <- readMat('LaplaceFittedModels/lap_Model9.mat')
+RecData6ParmNULL<- readMat('LaplaceFittedModels/lap_Model10.mat')
+RecDataRW4      <- readMat('LaplaceFittedModels/lap_Model11.mat')
+RecDataRW5UpDown<- readMat('LaplaceFittedModels/lap_Model12.mat')
+RecDataRW53lrc  <- readMat('LaplaceFittedModels/lap_Model13.mat')
+RecDataRW5      <- readMat('LaplaceFittedModels/lap_Model14.mat')
 
 RecDataIndiv <- data.frame(Log = rep(NA, 697*14),
                            Model =
@@ -189,9 +171,18 @@ RecDataIndiv %>%
 RecDataIndiv %>%
   mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
   ggplot()+
-  geom_jitter(aes(factor(ModelNum), BIC, color = Type), alpha = 0.05)+
-  stat_summary(aes(factor(ModelNum), BIC, color = Type))+
-  ggpubr::stat_compare_means(aes(factor(ModelNum), BIC, color = Type), ref.group = '2', label = 'p.signif', method = 'wilcox.test')+
+  geom_jitter(aes(factor(ModelNum), BIC, color = Type),
+              alpha = 0.05, show.legend = F)+
+  stat_summary(aes(factor(ModelNum), BIC, color = Type), key_glyph = 'pointrange')+
+  geom_text(data= RecDataIndiv %>%
+              mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
+              group_by(ModelNum) %>%
+              summarise(BIC = mean(BIC)),
+            aes(factor(ModelNum), round(BIC,2), label = round(BIC,2)),
+            check_overlap = T, nudge_y = -5, fontface = 'bold')+
+  scale_color_brewer(palette = 'Set1')+
+  ggpubr::stat_compare_means(aes(factor(ModelNum), BIC, color = Type), ref.group = '2',
+                             label = 'p.signif', method = 'wilcox.test', paired = T, show.legend = F)+
   labs(x = 'Model', y = 'BIC')+
   ggdist::theme_tidybayes()+
   theme(axis.title = element_text(size = 14),
@@ -203,7 +194,7 @@ RecDataIndiv %>%
 # Matlab data load --------------------------------------------
 
 # load data from matlab
-RecData <- readMat('hbi_models3.mat')
+RecData <- readMat('Fit_CBM/hbi_models3.mat')
 
 RecData.frequency  <- RecData$cbm[,,1]$output[,,1]$model.frequency
 RecData.exceed     <- RecData$cbm[,,1]$output[,,1]$exceedance.prob
@@ -283,7 +274,7 @@ indivParmsB <- plyr::join(Intentions_splice %>% mutate(PartnerPolicy = ifelse(Pa
 
 # Simplex Plot ------------------------------------------------------------
 
-SimplexR <- readMat('SimplexPlot.mat')
+SimplexR <- readMat('Data/SimplexPlot.mat')
 SimplexR <- SimplexR$sumProbF
 
 for(i in 1:length(SimplexR[1,,1])){
@@ -304,6 +295,8 @@ colnames(Simplex) <- c(-100:100, 'alpha_m', 'Policy')
 Simplex <- Simplex %>%
   pivot_longer(1:201, 'beta_m', values_to = 'Probability') %>%
   pivot_wider(id_cols = c(alpha_m, beta_m), names_from = Policy, values_from = Probability)
+
+Scale01 <- function(x){(x-min(x))/(max(x)-min(x))}
 
 SPlot <- ggplot(Simplex, aes(as.numeric(alpha_m), as.numeric(beta_m)))+
   geom_point(aes(color = Scale01(Prosocial)), alpha = 0.75)+
@@ -492,8 +485,8 @@ Ptop
 
 # Check phase 2 parms against phase 1 ----------------------------------------
 
-Phase1 <- readMat('lap_Phase1Estimate.mat')
-Phase2 <- readMat('lap_Model2.mat')
+Phase1 <- readMat('LaplaceFittedModels/lap_Phase1Estimate.mat')
+Phase2 <- readMat('LaplaceFittedModels/lap_Model2.mat')
 
 Phase1_parms <-   Phase1$cbm[,,1]$output[,,1]$parameters
 Phase1_parms[,1] <- (1/(1+exp(-Phase1_parms[,1])))*15
@@ -540,7 +533,7 @@ ggplot(parmCheck) +
 # Model Error and assessment -------------------------------------------------------
 
 # Load data and wrangle
-RecError <- readMat('modelError_Generative.mat')
+RecError <- readMat('LaplaceFittedModels/modelError_Generative.mat')
 
 loglikstats <- data.frame(lik1 = RecError$lik1,
                           lik2 = RecError$lik2,
@@ -795,8 +788,8 @@ AttributeCon <- ggplot(ConReg)+
 
 # Recovery Analysis -------------------------------------------------------
 
-RecRecovery <- readMat('lap_Model2_recovery.mat')
-RecReal     <- readMat('lap_Model2.mat')
+RecRecovery <- readMat('LaplaceFittedModels/lap_Model2_recovery.mat')
+RecReal     <- readMat('LaplaceFittedModels/lap_Model2.mat')
 
 RealParms <- RecReal$cbm[,,1]$output[,,1]$parameters %>%
   as.data.frame() %>%
@@ -843,7 +836,7 @@ library(lme4)
 ControlDF <- plyr::join(indivParmsB, testdf2 %>% dplyr::select(CorrectFix, CorrectSim, id), by = 'id') %>% distinct()
 ControlDF <- ControlDF %>% mutate(PartnerPolicy = factor(PartnerPolicy, levels = c('Competitive', 'Individualist','Prosocial')))
 #Total correct score by parameters and covariates
-model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + offset(scale(CorrectFix))+ PartnerPolicy+
+model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + offset(scale(CorrectFix))+
                    scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
                  data = ControlDF,
                  na.action = na.fail))
@@ -932,114 +925,27 @@ design4 <- "
 "
 patchwork::wrap_plots(A = pA, b = AttributeCon, design = design4) & plot_annotation(tag_levels = "A")
 
-# Calculate final marginals -----------------------------------------------
-
-MargSims <- readMat('modelError_Generative.mat')
-
-alpha_marg    <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
-beta_marg     <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
-alpha_margPPT <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
-beta_margPPT  <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
-
-for (i in 1:697) {
-  alpha_marg[i,]    <- as.vector(MargSims$alpha.m2[[i]][[1]])
-  beta_marg[i,]     <- as.vector(MargSims$beta.m2[[i]][[1]])
-  alpha_margPPT[i,] <- as.vector(MargSims$alpha.m[[i]][[1]])
-  beta_margPPT[i,]  <- as.vector(MargSims$beta.m[[i]][[1]])
-}
-
-colnames(alpha_marg) <- seq(0, 30, 0.125)
-colnames(beta_marg) <- seq(-30, 30, 0.25)
-colnames(alpha_margPPT) <- seq(0, 30, 0.125)
-colnames(beta_margPPT) <- seq(-30, 30, 0.25)
-
-cbind(alpha_marg %>%
-        mutate(id = 1:697) %>%
-        pivot_longer(1:241, names_to = 'index_a', values_to = 'alpha_lik'),
-      beta_marg %>%
-        mutate(id = 1:697) %>%
-        pivot_longer(1:241, names_to = 'index_b', values_to = 'beta_lik'),
-      alpha_margPPT %>%
-        mutate(id = 1:697) %>%
-        pivot_longer(1:241, names_to = 'index_a', values_to = 'alphaPPT_lik'),
-      beta_margPPT %>%
-        mutate(id = 1:697) %>%
-        pivot_longer(1:241, names_to = 'index_b', values_to = 'betaPPT_lik')) %>%
-  dplyr::select(1, 2, 3, 9, 5, 6, 12) %>%
-
-  plyr::join(congruency, by = 'id') %>%
-  dplyr::select(id, index_a, index_b, alpha_lik, beta_lik, alphaPPT_lik, betaPPT_lik,Sum, Persec, Age, Sex, Control, ICARTot,HI, SI, PartnerPolicy, alpha_m, beta_m, beta_v, alpha_v) %>%
-  mutate(index_a = as.numeric(index_a),
-         index_b = as.numeric(index_b)) %>%
-  arrange(id, index_a, index_b) %>%
-  distinct() -> marginals
-
-# Partner Parameter Check -------------------------------------------------
-
-Phase1Partner <- readMat('lap_PartnerParms.mat')
-Phase1Partner_parms     <-   Phase1Partner$cbm[,,1]$output[,,1]$parameters
-Phase1Partner_parms[,1] <- (1/(1+exp(-Phase1Partner_parms[,1])))*15
-
-Phase1Partner_parms %>%
-  as.data.frame() %>%
-  rename(alpha_partner = 1,
-         beta_partner = 2) %>%
-  mutate(id = 1:697) %>%
-  plyr::join(indivParmsB %>%
-               as.data.frame() %>%
-               mutate(id = 1:697), by = 'id') %>%
-  group_by(PartnerPolicy) %>%
-  summarise(
-    alpha = median(alpha_partner),
-    beta = median(beta_partner),
-    alphasd = sd(alpha_partner),
-    betasd = sd(beta_partner)
-  )
-
-#Use optim (MLE) instead of hierarchical fit
-Intentions_Phase1Check <- Intentions_BothPhase %>%
-  na.omit() %>%
-  group_by(id) %>%
-  mutate(Trial = 1:36)
-
-ControlDF$AlphaPar <- rep(NA, 697)
-ControlDF$BetaPar <- rep(NA, 697)
-
-#Estimate parameters
-for (i in 1:697){
-  data   <- Intentions_Phase1Check %>%
-    filter(id == i) %>%
-    as.data.frame()
-  data  <- sapply(data, as.numeric)
-  testpar<- as.numeric(c(0, 0))
-  MLEfit <- optim(par  = testpar,
-                  fn   = Phase1Wrapper,
-                  datAr = data)
-  ControlDF[i,'AlphaPar'] <- MLEfit$par[1]
-  ControlDF[i,'BetaPar' ] <- MLEfit$par[2]
-}
-
 # Generative ability ------------------------------------------------------
 
-GenReg = testdf2 %>% dplyr::select(id, Sum, ICARTot, CorrectFix, CorrectSim, alpha_m, alpha_v,beta_m, beta_v, PartnerPolicy, Age, Persec) %>% distinct()
+GenReg = testdf2 %>% dplyr::select(id, Sum, ICARTot, CorrectFix, CorrectSim, alpha_m, alpha_v,beta_m, beta_v, PartnerPolicy, Age, Persec, Sex, Control) %>% distinct()
 model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + scale(CorrectFix) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
                    scale(Persec) + Age + PartnerPolicy, data = GenReg, na.action = na.fail))
 
 GenRegP = GenReg %>% filter(PartnerPolicy == 'Prosocial')
 model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + scale(CorrectFix) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
-                   scale(Persec) + Age, data = GenRegP, na.action = na.fail))
+                   scale(Persec) + Age + Sex + Control, data = GenRegP, na.action = na.fail))
 
 GenRegI = GenReg %>% filter(PartnerPolicy == 'Individualist')
 model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + scale(CorrectFix) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
-                   scale(Persec) + Age, data = GenRegI, na.action = na.fail))
+                   scale(Persec) + Age + Sex + Control, data = GenRegI, na.action = na.fail))
 
 GenRegC = GenReg %>% filter(PartnerPolicy == 'Competitive')
 model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + offset(scale(CorrectFix)) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
-                   scale(Persec) + Age, data = GenRegC, na.action = na.fail))
+                   scale(Persec) + Age + Sex + Control, data = GenRegC, na.action = na.fail))
 
 # Model permutation test --------------------------------------------------
 
-RecPermute <- readMat('modelError_Permute.mat')
+RecPermute <- readMat('LaplaceFittedModels/modelError_Permute.mat')
 PermutedParms <- as.data.frame(RecPermute$parms); colnames(PermutedParms) <- c('alpha_p', 'beta_p', 'asd_p', 'bsd_p')
 
 PermutedParms[,1] <- 1/(1+exp(-PermutedParms[,1]))*15
@@ -1103,9 +1009,96 @@ model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) 
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = permutedPlotC, na.action = na.fail))
 
+# Calculate final marginals -----------------------------------------------
+
+MargSims <- readMat('LaplaceFittedModels/modelError_Generative.mat')
+
+alpha_marg    <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
+beta_marg     <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
+alpha_margPPT <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
+beta_margPPT  <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
+
+for (i in 1:697) {
+  alpha_marg[i,]    <- as.vector(MargSims$alpha.m2[[i]][[1]])
+  beta_marg[i,]     <- as.vector(MargSims$beta.m2[[i]][[1]])
+  alpha_margPPT[i,] <- as.vector(MargSims$alpha.m[[i]][[1]])
+  beta_margPPT[i,]  <- as.vector(MargSims$beta.m[[i]][[1]])
+}
+
+colnames(alpha_marg) <- seq(0, 30, 0.125)
+colnames(beta_marg) <- seq(-30, 30, 0.25)
+colnames(alpha_margPPT) <- seq(0, 30, 0.125)
+colnames(beta_margPPT) <- seq(-30, 30, 0.25)
+
+cbind(alpha_marg %>%
+        mutate(id = 1:697) %>%
+        pivot_longer(1:241, names_to = 'index_a', values_to = 'alpha_lik'),
+      beta_marg %>%
+        mutate(id = 1:697) %>%
+        pivot_longer(1:241, names_to = 'index_b', values_to = 'beta_lik'),
+      alpha_margPPT %>%
+        mutate(id = 1:697) %>%
+        pivot_longer(1:241, names_to = 'index_a', values_to = 'alphaPPT_lik'),
+      beta_margPPT %>%
+        mutate(id = 1:697) %>%
+        pivot_longer(1:241, names_to = 'index_b', values_to = 'betaPPT_lik')) %>%
+  dplyr::select(1, 2, 3, 9, 5, 6, 12) %>%
+
+  plyr::join(congruency, by = 'id') %>%
+  dplyr::select(id, index_a, index_b, alpha_lik, beta_lik, alphaPPT_lik, betaPPT_lik,Sum, Persec, Age, Sex, Control, ICARTot,HI, SI, PartnerPolicy, alpha_m, beta_m, beta_v, alpha_v) %>%
+  mutate(index_a = as.numeric(index_a),
+         index_b = as.numeric(index_b)) %>%
+  arrange(id, index_a, index_b) %>%
+  distinct() -> marginals
+
+# Partner Parameter Check -------------------------------------------------
+
+Phase1Partner <- readMat('LaplaceFittedModels/lap_PartnerParms.mat')
+Phase1Partner_parms     <-   Phase1Partner$cbm[,,1]$output[,,1]$parameters
+Phase1Partner_parms[,1] <- (1/(1+exp(-Phase1Partner_parms[,1])))*15
+
+Phase1Partner_parms %>%
+  as.data.frame() %>%
+  rename(alpha_partner = 1,
+         beta_partner = 2) %>%
+  mutate(id = 1:697) %>%
+  plyr::join(indivParmsB %>%
+               as.data.frame() %>%
+               mutate(id = 1:697), by = 'id') %>%
+  group_by(PartnerPolicy) %>%
+  summarise(
+    alpha = median(alpha_partner),
+    beta = median(beta_partner),
+    alphasd = sd(alpha_partner),
+    betasd = sd(beta_partner)
+  )
+
+#Use optim (MLE) instead of hierarchical fit
+Intentions_Phase1Check <- Intentions_BothPhase %>%
+  na.omit() %>%
+  group_by(id) %>%
+  mutate(Trial = 1:36)
+
+ControlDF$AlphaPar <- rep(NA, 697)
+ControlDF$BetaPar <- rep(NA, 697)
+
+#Estimate parameters
+for (i in 1:697){
+  data   <- Intentions_Phase1Check %>%
+    filter(id == i) %>%
+    as.data.frame()
+  data  <- sapply(data, as.numeric)
+  testpar<- as.numeric(c(0, 0))
+  MLEfit <- optim(par  = testpar,
+                  fn   = Phase1Wrapper,
+                  datAr = data)
+  ControlDF[i,'AlphaPar'] <- MLEfit$par[1]
+  ControlDF[i,'BetaPar' ] <- MLEfit$par[2]
+}
+
 # Test alternative utility instead
 
-testAltUtility <- readMat('AlternativeUtility.mat')
+testAltUtility <- readMat('LaplaceFittedModels/AlternativeUtility.mat')
 
 UtAltChoicesSimA <- matrix(NA, 18, 697)
 RecChoicesSimA <- matrix(NA, 18, 697)
