@@ -1,0 +1,58 @@
+﻿randomise_blocks,randomise_trials,display,ANSWER,Option1_PPT,Option1_Partner,Option2_PPT,Option2_Partner,ShowProgressBar,Type1,Type2,Difference1,Difference2
+,,instructions,Option 1,8,8,10,5,,,,0,5
+,1,playerChoice,,6,6,10,5,1,Prosocial,Individual,0,5
+,1,playerChoice,,7,7,10,5,1,Prosocial,Individual,0,5
+,1,playerChoice,,8,8,10,5,1,Prosocial,Individual,0,5
+,1,playerChoice,,6,6,6,2,1,Prosocial,Competitive,0,4
+,1,playerChoice,,7,7,7,2,1,Prosocial,Competitive,0,5
+,1,playerChoice,,8,8,8,2,1,Prosocial,Competitive,0,6
+,1,playerChoice,,6,2,8,5,1,Competitive,Individual,4,3
+,1,playerChoice,,7,2,8,5,1,Competitive,Individual,5,3
+,1,playerChoice,,8,2,9,5,1,Competitive,Individual,6,4
+,1,playerChoice,,12,5,8,8,1,Individual,Prosocial,0,7
+,1,playerChoice,,12,5,9,9,1,Individual,Prosocial,0,7
+,1,playerChoice,,12,5,10,10,1,Individual,Prosocial,0,7
+,1,playerChoice,,8,5,8,8,1,Competitive,Prosocial,0,3
+,1,playerChoice,,9,5,9,9,1,Competitive,Prosocial,0,4
+,1,playerChoice,,10,5,10,10,1,Competitive,Prosocial,0,5
+,1,playerChoice,,10,6,8,2,1,Individual,Competitive,6,4
+,1,playerChoice,,11,6,9,2,1,Individual,Competitive,7,5
+,1,playerChoice,,12,6,10,2,1,Individual,Competitive,8,6
+,,mid,Option 1,8,8,5,2,,,,0,3
+,2,playerGuess,Option 2,6,6,10,5,1,Prosocial,Individual,0,5
+,2,playerGuess,Option 2,7,7,10,5,1,Prosocial,Individual,0,5
+,2,playerGuess,Option 2,8,8,10,5,1,Prosocial,Individual,0,5
+,2,playerGuess,Option 1,6,6,6,2,1,Prosocial,Competitive,0,4
+,2,playerGuess,Option 2,7,7,7,2,1,Prosocial,Competitive,0,5
+,2,playerGuess,Option 1,8,8,8,2,1,Prosocial,Competitive,0,6
+,2,playerGuess,Option 2,6,2,8,6,1,Competitive,Individual,4,2
+,2,playerGuess,Option 2,7,2,8,6,1,Competitive,Individual,5,2
+,2,playerGuess,Option 2,8,2,9,6,1,Competitive,Individual,6,3
+,2,playerGuess,Option 1,12,5,8,8,1,Individual,Prosocial,7,0
+,2,playerGuess,Option 1,12,5,9,9,1,Individual,Prosocial,7,0
+,2,playerGuess,Option 1,12,5,10,10,1,Individual,Prosocial,7,0
+,2,playerGuess,Option 2,8,5,8,8,1,Competitive,Prosocial,3,0
+,2,playerGuess,Option 1,9,5,9,9,1,Competitive,Prosocial,4,0
+,2,playerGuess,Option 2,10,5,10,10,1,Competitive,Prosocial,5,0
+,2,playerGuess,Option 1,10,6,8,2,1,Individual,Competitive,6,4
+,2,playerGuess,Option 1,11,6,9,2,1,Individual,Competitive,7,5
+,2,playerGuess,Option 1,12,6,10,2,1,Individual,Competitive,8,6
+,2,playerGuess,Option 1,10,5,6,6,1,Individual,Prosocial,0,5
+,2,playerGuess,Option 1,10,5,7,7,1,Individual,Prosocial,0,5
+,2,playerGuess,Option 1,10,5,8,8,1,Individual,Prosocial,0,5
+,2,playerGuess,Option 1,6,2,6,6,1,Competitive,Prosocial,0,4
+,2,playerGuess,Option 2,7,2,7,7,1,Competitive,Prosocial,0,5
+,2,playerGuess,Option 1,8,2,8,8,1,Competitive,Prosocial,0,6
+,2,playerGuess,Option 1,8,6,6,2,1,Individual,Competitive,4,2
+,2,playerGuess,Option 1,8,6,7,2,1,Individual,Competitive,5,2
+,2,playerGuess,Option 1,9,6,8,2,1,Individual,Competitive,6,3
+,2,playerGuess,Option 2,8,8,12,5,1,Prosocial,Individual,7,0
+,2,playerGuess,Option 2,9,9,12,5,1,Prosocial,Individual,7,0
+,2,playerGuess,Option 2,10,10,12,5,1,Prosocial,Individual,7,0
+,2,playerGuess,Option 1,8,8,8,5,1,Prosocial,Competitive,3,0
+,2,playerGuess,Option 2,9,9,9,5,1,Prosocial,Competitive,4,0
+,2,playerGuess,Option 1,10,10,10,5,1,Prosocial,Competitive,5,0
+,2,playerGuess,Option 2,8,2,10,6,1,Competitive,Individual,6,4
+,2,playerGuess,Option 2,9,2,11,6,1,Competitive,Individual,7,5
+,2,playerGuess,Option 2,10,2,12,6,1,Competitive,Individual,8,6
+,,end,,,,,,,,,,
