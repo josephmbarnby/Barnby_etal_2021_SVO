@@ -27,15 +27,13 @@
 
 function [F] = Model_13(parms,data)
 
-res = 15;
-
 nd_alpha        = parms(1);
 nd_tau          = parms(3);
 nd_lr_p         = parms(4);
 nd_lr_i         = parms(5);
 nd_lr_c         = parms(6);
 
-alpha   = res*(1./(1+exp(-nd_alpha)));
+alpha   = 15*(1./(1+exp(-nd_alpha)));
 beta    = parms(2);
 tau     = exp(nd_tau);
 lr_p    = 1./(1+exp(-nd_lr_p));
@@ -43,9 +41,9 @@ lr_i    = 1./(1+exp(-nd_lr_i));
 lr_c    = 1./(1+exp(-nd_lr_c));
 
 T1  = 18;
-T2  = T1 + 36 + 1;   %number of trials + 1
+T2  = T1 + 36;       %number of trials + 1
 k   = 3;             %number of options
-Q   = nan(T2,k);     %values of each choice each trial %1 = prosocial, 2 = individual, 3 = competitive
+Q   = nan(T2+1,k);     %values of each choice each trial %1 = prosocial, 2 = individual, 3 = competitive
 
 lik2   = 0;
 lik1   = 0;
@@ -80,8 +78,8 @@ end
 
 for t = (T1+1):T2 
     
-    choice = data(t-1,9);
-    outcome= data(t-1,10);
+    choice = data(t,9);
+    outcome= data(t,10);
 
     % copy forward action values to next trial
     Q(t, :) = Q(t-1, :);

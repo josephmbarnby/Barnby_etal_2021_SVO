@@ -41,9 +41,9 @@ lr_c    = 1./(1+exp(-nd_lr_c));
 lr_ic   = 1./(1+exp(-nd_lr_ic));
 
 T1  = 18;
-T2  = T1 + 36 + 1;   %number of trials + 1
+T2  = T1 + 36;       %
 k   = 3;             %number of options
-Q   = nan(T2,k);     %values of each choice each trial %1 = prosocial, 2 = individual, 3 = competitive
+Q   = nan(T2+1,k);   %values of each choice each trial %1 = prosocial, 2 = individual, 3 = competitive
 
 lik2   = 0;
 lik1   = 0;
@@ -78,13 +78,17 @@ end
 
 for t = (T1+1):T2 
     
+    s1 = data(t, 3)/10;
+    o1 = data(t, 4)/10;
+    s2 = data(t, 5)/10;
+    o2 = data(t, 6)/10;
     
     val1 = (alpha*s1) + (beta*max(s1-o1,0)) ; 
     val2 = (alpha*s2) + (beta*max(s2-o2,0)) ;
     
-    action = data(t-1,7);
-    choice = data(t-1,9);
-    outcome= data(t-1,10);
+    action = data(t,7);
+    choice = data(t,9);
+    outcome= data(t,10);
 
     % copy forward action values to next trial
     Q(t, :) = Q(t-1, :);

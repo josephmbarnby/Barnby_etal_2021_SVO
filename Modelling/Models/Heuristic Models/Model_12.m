@@ -27,25 +27,21 @@
 
 function [F] = Model_12(parms,data)
 
-res = 15;
-
 nd_alpha        = parms(1);
 nd_tau          = parms(3);
 nd_lr_u         = parms(4);
 nd_lr_d         = parms(5);
 
-
-alpha   = res*(1./(1+exp(-nd_alpha)));
+alpha   = 15*(1./(1+exp(-nd_alpha)));
 beta    = parms(2);
 tau     = exp(nd_tau);
 lr_u    = 1./(1+exp(-nd_lr_u));
 lr_d    = 1./(1+exp(-nd_lr_d));
 
-
 T1  = 18;
-T2  = T1 + 36 + 1;   %number of trials + 1
+T2  = T1 + 36;       %number of trials
 k   = 3;             %number of options
-Q   = nan(T2,k);     %values of each choice each trial %1 = prosocial, 2 = individual, 3 = competitive
+Q   = nan(T2+1,k);   %values of each choice each trial %1 = prosocial, 2 = individual, 3 = competitive
 
 lik2   = 0;
 lik1   = 0;
@@ -80,8 +76,8 @@ end
 
 for t = (T1+1):T2 
     
-    choice = data(t-1,9);
-    outcome= data(t-1,10);
+    choice = data(t,9);
+    outcome= data(t,10);
 
     % copy forward action values to next trial
     Q(t, :) = Q(t-1, :);
@@ -94,6 +90,7 @@ for t = (T1+1):T2
     else
     Q(t,choice) = Q(t,choice) + (lr_d * pe);   
     end
+    % decay non chosen options
        
     pr      = (exp(Q(t-1, choice)/tau)/sum(exp(Q(t-1,:)/tau)));
     lik2    = lik2 + log(pr);

@@ -11,20 +11,9 @@
 %   over trials 1:36. 
 %4  Favouritism bias parameter (5) to bias a participant's learning
 
-%%%%%% DATA STRUCTURE REQUIRED %%%%%%%
-% colnames:
-% 1 ID                    | 1....n
-% 2 Trial                 | 1:18 (Phase1); 19:54 (Phase 2); adjust as appropriate
-% 3 O1-Self               | 8, 10, 10...n
-% 4 O1-Other              | 8, 6,  5 ...n
-% 5 O2-Self               | 6, 9,  8 ...n
-% 6 O2-Other              | 2, 9,  4 ...n
-% 7 PPT choice/prediction | 2, 2,  1 ...n
-% 8 Partner action        | 1, 2,  1 ...n
-
 %% Model
 
-function[F] = Model_6(parms, data)
+function[F] = FSModel_1_Phase2_FavBiasO(parms, data)
 
    % Initialise
    
@@ -32,7 +21,7 @@ function[F] = Model_6(parms, data)
 
    %phase 1 parms
 alpha_raw       = parms(1); % subjects alpha for phase 1
-alpha           = res*(1./(1+exp(-alpha_raw)));% restrict alpha to between 0 and res
+alpha           = res*(1./(1+exp(-alpha_raw)));% restrict alpha to between 0 and 15
 beta            = parms(2); % subjects beta for phase 1
     %phase 2 parms
 alpha_v         = parms(3); % subjects prior variance of belief over their partner for alpha
@@ -102,7 +91,7 @@ subject_estimate_pchoose1 = (1./(1+exp(-(val1 - val2))));
 tmp=subject_estimate_pchoose1 .* newpabg;
 subject_netp1 = sum(tmp(:));
 
-subject_estimate = data(t, 7); % participant prediction
+subject_estimate = data(t, 7); % say the subject thought that the partner would go for 2
 
     if (subject_estimate==1)
         lik2 = lik2 + log(subject_netp1); % log likelihood 
@@ -112,8 +101,8 @@ subject_estimate = data(t, 7); % participant prediction
 
 actual_choice = data(t, 8); % what did our partner 'choose'
 
-q1 = (1./(1+exp(-(val1 - val2)))) * exp(kappa * s1); % fav bias
-q2 = (1./(1+exp(-(val2 - val1)))) * exp(kappa * s2); % fav bias
+q1 = (1./(1+exp(-(val1 - val2)))) * exp(kappa * o1); %
+q2 = (1./(1+exp(-(val2 - val1)))) * exp(kappa * o2); %
 
     if (actual_choice==1)
         pchoose2 = q1./(q1+q2); % if the partner chose 1
