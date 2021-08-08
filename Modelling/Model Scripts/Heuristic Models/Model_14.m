@@ -25,7 +25,7 @@
 
 %% Model
 
-function [F] = Model_14(parms,data)
+function [F] = Q_model_FS_congIncong(parms,data)
 
 res = 15;
 
@@ -78,8 +78,8 @@ end
 
 for t = (T1+1):T2 
     
-    s1 = data(t, 3)/10;
-    o1 = data(t, 4)/10;
+    s1 = data(t, 3)/10; % self of partner
+    o1 = data(t, 4)/10; % other of partner (self for participant)
     s2 = data(t, 5)/10;
     o2 = data(t, 6)/10;
     
