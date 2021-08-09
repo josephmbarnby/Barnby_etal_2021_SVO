@@ -78,6 +78,11 @@ model.compare(lm(
   na.action = na.fail,
   data = model1,
 ))
+model.compare(lm(
+  scale(SI) ~ PartnerPolicy + scale(Persec) +  Age + Sex + scale(ICARTot) + Control,
+  na.action = na.fail,
+  data = model1,
+))
 
 model1a <- model1 %>%
   filter(PartnerPolicy == "Prosocial") %>%

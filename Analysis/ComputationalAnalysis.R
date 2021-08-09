@@ -39,27 +39,6 @@ simulatedHeur <- list()
 simulatedDat  <- list()
 testDat  <- Intentions_list_C[[1]] %>% dplyr::select(Trial, Option1_PPT, Option1_Partner, Option2_PPT, Option2_Partner, Response)
 
-simulatedDat1 <-  foreach(i = 1:1000, .combine = rbind) %dopar% {
-genpar <- c(mysamp(1, 0, 5, 0, 15, 1000), mysamp(1, 0, 5, -10, 10, 1000))
-data = as.data.frame(Intentions_list_G[[3]][1:18,c('Response', 'Option1_PPT', 'Option1_Partner', 'Option2_PPT', 'Option2_Partner', 'Trial', 'Answer')])
-synD <- Phase1Sim(genpar, rbind(data)) #generate synthetic data
-synD <- synD %>% mutate(prob2 = 1-prob,
-                        Trial = 1:18,
-                        Alpha = genpar[1],
-                        Beta  = genpar[2],
-                        PPT   = i,
-                        Answer = as.numeric(Answer),
-                        Correct = ifelse(simA == Answer, 1, 0),
-                        SumCor  = sum(Correct)) %>%
-  dplyr::select(simA, prob, prob2, 3:7, 9:14)
-sapply(synD, as.numeric)
-data.frame(
-  synD
-)
-}
-
-simulatedDat1
-
 simulatedHeur[[i]] <-  foreach(i = 1:100, .combine = rbind) %dopar% {
 
   genpar <- c(mysamp(1, 0, 3, 0, 10, 1000), mysamp(1, 0, 3, -10, 10, 1000))
@@ -990,7 +969,7 @@ permutedPlotP <- permutedPlot %>% filter(PartnerPolicy == 'Prosocial')
 permutedPlotC <- permutedPlot %>% filter(PartnerPolicy == 'Competative')
 permutedPlotI <- permutedPlot %>% filter(PartnerPolicy == 'Individualist')
 
-model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + offset(scale(sumPFixCor))+
+model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + scale(sumPFixCor)+
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = permutedPlotP, na.action = na.fail))
 model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + scale(sumPFixCor)+
