@@ -1369,7 +1369,7 @@ marginals %>%
     by = 'id') -> marginals_part
 
 # Figure S8 ---------------------------------------------------------------
-
+library(sjPlot)
 x <- ggplot(data1c)+
   geom_smooth(aes(CorrectFix, Sum), method = 'lm', color = 'black')+
   geom_jitter(aes(CorrectFix, Sum, color = beta_m))+
