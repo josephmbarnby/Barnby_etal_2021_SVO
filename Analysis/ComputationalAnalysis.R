@@ -1307,12 +1307,12 @@ ggplot(GenMargData %>%
 SimAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectSim, Sum, PartnerPolicy, id) %>% distinct())+
   geom_jitter(aes(CorrectSim, Sum, color = PartnerPolicy), alpha = 0.5)+
   geom_smooth(aes(CorrectSim, Sum, color = PartnerPolicy), method = 'lm')+
-  labs(x = expression(paste('Simulated correct answers given ',
+  labs(x = expression(paste('Simulated correct predictions given ',
                             alpha[ppt]^m,
                             beta[ppt]^m,
                             alpha^sigma,
                             beta^sigma)),
-       y = 'Real Correct Answers')+
+       y = 'Real Correct Predictions')+
   ggpubr::stat_cor(aes(CorrectSim, Sum, color = PartnerPolicy), show.legend = F)+
   scale_color_brewer(palette = 'Dark2')+
   ggridges::theme_ridges()+
@@ -1327,6 +1327,8 @@ PredAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectFix, Sum, PartnerPolicy, id
   scale_fill_brewer(palette = 'Dark2')+
   ggridges::theme_ridges()+
   theme(legend.position = c(0.1, 0.75))
+
+SimAPlot|PredAPlot & plot_annotation(tag_levels = 'A')
 
 # Figure S8 ----------------------------------------------------------
 
