@@ -2,7 +2,7 @@
 #Joe Barnby
 #Joe.barnby@kcl.ac.uk | j.barnby@uq.edu.au
 
-#rm(list=ls(all=T))
+rm(list=ls(all=T))
 
 library(easystats)
 library(tidyverse)
@@ -750,13 +750,13 @@ model.compare(lm(scale(ICARTot) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m
                  na.action = na.fail))
 
 #HI by parameters and covariates
-model.compare(lm(scale(HI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +scale(CorrectFix) + PartnerPolicy+
+model.compare(lm(scale(HI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) + PartnerPolicy+
                    scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
                  data = ControlDF,
                  na.action = na.fail))
 
 #SI by parameters and covariates
-model.compare(lm(scale(SI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +scale(CorrectFix) + PartnerPolicy+
+model.compare(lm(scale(SI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) + PartnerPolicy+
                    scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
                  data = ControlDF,
                  na.action = na.fail))
@@ -835,28 +835,28 @@ C <- congruency %>%
 #change partner factor level if required
 C <- C %>% mutate(PartnerPolicy=factor(PartnerPolicy, levels = c('Individualist', 'Competitive', 'Prosocial')))
 
-model.compare(lm(HI ~ ConSum + offset(CorrectFix) + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
+model.compare(lm(HI ~ ConSum + CorrectFix + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
 
 C1 <- C %>% filter(PartnerPolicy == 'Prosocial')
-model.compare(lm(HI ~ ConSum + offset(CorrectFix)+ Age + Sex + Persec + ICARTot + Control, data = C1, na.action = na.fail))
+model.compare(lm(HI ~ ConSum + CorrectFix+ Age + Sex + Persec + ICARTot + Control, data = C1, na.action = na.fail))
 C2 <- C %>% filter(PartnerPolicy == 'Individualist')
-model.compare(lm(HI ~ ConSum + offset(CorrectFix)+ Age + Sex + Persec + ICARTot + Control, data = C2, na.action = na.fail))
+model.compare(lm(HI ~ ConSum + CorrectFix+ Age + Sex + Persec + ICARTot + Control, data = C2, na.action = na.fail))
 C3 <- C %>% filter(PartnerPolicy == 'Competitive')
-model.compare(lm(HI ~ ConSum + offset(CorrectFix)+ Age + Sex + Persec + ICARTot + Control, data = C3, na.action = na.fail))
+model.compare(lm(HI ~ ConSum + CorrectFix+ Age + Sex + Persec + ICARTot + Control, data = C3, na.action = na.fail))
 
-model.compare(lm(SI ~ ConSum + offset(CorrectFix) + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
+model.compare(lm(SI ~ ConSum + CorrectFix + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
 
 C1b <- C %>% filter(PartnerPolicy == 'Prosocial')
-model.compare(lm(SI ~ ConSum + offset(CorrectFix)+ Age + Sex + Persec + ICARTot + Control, data = C1b, na.action = na.fail))
+model.compare(lm(SI ~ ConSum + CorrectFix + Age + Sex + Persec + ICARTot + Control, data = C1b, na.action = na.fail))
 C2b <- C %>% filter(PartnerPolicy == 'Individualist')
-model.compare(lm(SI ~ ConSum + offset(CorrectFix)+ Age + Sex + Persec + ICARTot + Control, data = C2b, na.action = na.fail))
+model.compare(lm(SI ~ ConSum + CorrectFix + Age + Sex + Persec + ICARTot + Control, data = C2b, na.action = na.fail))
 C3b <- C %>% filter(PartnerPolicy == 'Competitive')
-model.compare(lm(SI ~ ConSum + offset(CorrectFix)+ Age + Sex + Persec + ICARTot + Control, data = C3b, na.action = na.fail))
+model.compare(lm(SI ~ ConSum + CorrectFix + Age + Sex + Persec + ICARTot + Control, data = C3b, na.action = na.fail))
 
 ConReg <- data.frame(
-  Estimate = c(-0.18, 0.03, -0.19, 0.00, 0.23, 0),
-  UCI    = c(  -0.08, 0.26, -0.09, 0.00, 0.37, 0),
-  LCI    = c(  -0.28,-0.10, -0.28, 0.00, 0.08, 0),
+  Estimate = c(-0.14, 0.06, -0.23, 0.00, 0.23, -0.08),
+  UCI    = c(  -0.04, 0.37, -0.06, 0.00, 0.37,  0.05),
+  LCI    = c(  -0.23,-0.08, -0.40, 0.00, 0.08, -0.61),
   p      = c(T, F, T, F, T, F),
   Policy = c('Prosocial', 'Individualist', 'Competitive', 'Prosocial', 'Individualist', 'Competitive'),
   Attribute = c(rep('Harmful Intent', 3), rep('Self Interest', 3)),
@@ -876,7 +876,7 @@ AttributeCon <- ggplot(ConReg)+
   scale_alpha_continuous(guide = F)+
   coord_cartesian(ylim = c(-1, 1))+
   theme_minimal()+
-  theme(legend.position = c(0.25, 0.75),
+  theme(legend.position = c(0.25, 0.8),
         legend.direction = 'vertical',
         legend.box.background = element_rect(colour = 'black'),
         legend.text = element_text(size = 11),
@@ -1302,7 +1302,7 @@ ggplot(GenMargData %>%
         legend.title = element_text(size =14),
         legend.direction = 'horizontal')
 
-# Figure S6 ---------------------------------------------------------------
+# Figure S7 ---------------------------------------------------------------
 
 SimAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectSim, Sum, PartnerPolicy, id) %>% distinct())+
   geom_jitter(aes(CorrectSim, Sum, color = PartnerPolicy), alpha = 0.5)+
@@ -1320,7 +1320,7 @@ SimAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectSim, Sum, PartnerPolicy, id)
 
 PredAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectFix, Sum, PartnerPolicy, id) %>% distinct())+
   geom_density(aes(CorrectFix,fill = PartnerPolicy), alpha = 0.75)+
-  labs(x = expression(paste('Predicted correct answers given ',
+  labs(x = expression(paste('Participant-partner similarity scores given ',
                             alpha[ppt]^m,
                             beta[ppt]^m)),
        y = 'Density')+
@@ -1330,7 +1330,7 @@ PredAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectFix, Sum, PartnerPolicy, id
 
 (SimAPlot | PredAPlot) & plot_annotation(tag_levels = 'A')
 
-# Figure S7 ----------------------------------------------------------
+# Figure S8 ----------------------------------------------------------
 
 Dist1 <- ggplot(marginals %>% filter(alpha_lik < 0.07)) +
   geom_density(aes(index_a, y = alpha_lik, color = PartnerPolicy, group = id), size = 0.03, stat = 'identity') +
@@ -1368,7 +1368,7 @@ marginals %>%
       mutate(id = 1:697),
     by = 'id') -> marginals_part
 
-# Figure S8 ---------------------------------------------------------------
+# Figure S9 ---------------------------------------------------------------
 library(sjPlot)
 x <- ggplot(data1c)+
   geom_smooth(aes(CorrectFix, Sum), method = 'lm', color = 'black')+
