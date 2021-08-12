@@ -763,27 +763,27 @@ model.compare(lm(scale(SI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + s
 
 #For each sum
 data1c = ControlDF %>% filter(PartnerPolicy=='Competitive')
-model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + offset(scale(CorrectFix)) +
+model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) +
                    scale(Persec) + scale(ICARTot) + Sex + scale(Age) + Control,
                  data = data1c,
                  na.action = na.fail))
 
 data2c = ControlDF %>% filter(PartnerPolicy=='Individualist')
-model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + offset(scale(CorrectFix)) +
+model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) +
                    scale(Persec) + scale(ICARTot) + Sex + scale(Age) + Control,
                  data = data2c,
                  na.action = na.fail))
 
 data3c = ControlDF %>% filter(PartnerPolicy=='Prosocial')
-model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + offset(scale(CorrectFix)) +
+model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) +
                    scale(Persec) + scale(ICARTot) + Sex + scale(Age) + Control,
                  data = data3c,
                  na.action = na.fail))
 
 pAll <- data.frame(
-  Estimate = c(-0.002, 0.180, 0.413, 0.870, 0.733, 0.171,-0.012, 0.097, 0.153, 0.002,-0.599, 0.767),
-  conf.low = c(-0.110, 0.119, 0.360, 0.810, 0.631, 0.078,-0.111, 0.020, 0.089,-0.049,-0.661, 0.704),
-  conf.high =c( 0.013, 0.241, 0.472, 0.930, 0.835, 0.270, 0.049, 0.172, 0.216, 0.083,-0.537, 0.830),
+  Estimate = c(-0.026, 0.180, 0.414, 0.870, 0.740, 0.171,-0.038, 0.097, 0.153, 0.002,-0.590, 0.767),
+  conf.low = c(-0.110, 0.119, 0.356, 0.810, 0.631, 0.077,-0.111, 0.021, 0.089,-0.049,-0.695, 0.704),
+  conf.high =c( 0.013, 0.241, 0.472, 0.930, 0.840, 0.270, 0.040, 0.173, 0.217, 0.083,-0.484, 0.830),
   Significant = c(F, T, T, T, T, T, F, T, T, F, T, T),
   Var = rep(c('alpha_m', 'alpha_v', 'beta_m', 'beta_v'), 3),
   Policy = c(rep('Competitive', 4), rep('Individualist', 4), rep('Prosocial', 4))
@@ -794,7 +794,7 @@ pA <- ggplot(pAll)+
   geom_bar(aes(Var, Estimate, fill = Policy, alpha = Significant), color = 'black', stat ='identity', position = 'dodge')+
   geom_errorbar(aes(Var, Estimate,group = Policy, ymin= conf.low, ymax=conf.high),
                 color = 'black', stat ='identity', position = 'dodge')+
-  labs(title = 'Total Correct Answers',
+  labs(title = 'Total Correct Predictions',
        subtitle = '(Controlling for Age, Sex, ICAR Score, Persecutory Ideation, Participant-Partner Baseline Similarity, Task Comprehension)',
        y = expression(paste(beta, ' weight | 95% Confidence Interval'))
   )+
