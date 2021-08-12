@@ -795,7 +795,7 @@ pA <- ggplot(pAll)+
   geom_errorbar(aes(Var, Estimate,group = Policy, ymin= conf.low, ymax=conf.high),
                 color = 'black', stat ='identity', position = 'dodge')+
   labs(title = 'Total Correct Answers',
-       subtitle = '(Controlling for Age, Sex, ICAR Score, Persecutory Ideation, Predicted Scores, Task Comprehension)',
+       subtitle = '(Controlling for Age, Sex, ICAR Score, Persecutory Ideation, Participant-Partner Baseline Similarity, Task Comprehension)',
        y = expression(paste(beta, ' weight | 95% Confidence Interval'))
   )+
   scale_x_discrete(labels = c(expression(alpha[ppt]^m), expression(alpha^sigma),expression(beta[ppt]^m),expression(beta^sigma)
