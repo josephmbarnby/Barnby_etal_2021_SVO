@@ -823,14 +823,13 @@ congruency %>%
   plyr::join(indivParmsB, by = 'id') -> congruency
 
 C <- congruency %>%
-  dplyr::select(ConSum, id, HI, SI, Persec, ICARTot, Age, Sex, Control, PartnerPolicy,
-                alpha_m, beta_m, beta_v, alpha_v, Sum) %>%
+  dplyr::select(ConSum, id, HI, SI, Persec, ICARTot, Age, Sex, Control, PartnerPolicy,Sum) %>%
   plyr::join(testdf2 %>% dplyr::select(id, CorrectFix), by = 'id') %>%
   distinct() %>%
   ungroup() %>%
   mutate(HI = scale(HI), SI = scale(SI),
          Persec = scale(Persec), ICARTot = scale(ICARTot),
-         Age = scale(Age), Sum = scale(Sum),
+         Age = scale(Age), Sum,
          ConSum = scale(ConSum), CorrectFix = scale(CorrectFix)) %>% as.data.frame()
 
 #change partner factor level if required
