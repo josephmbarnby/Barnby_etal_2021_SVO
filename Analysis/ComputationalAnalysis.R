@@ -756,7 +756,7 @@ model.compare(lm(scale(HI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + s
                  na.action = na.fail))
 
 #SI by parameters and covariates
-model.compare(lm(scale(SI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) +PartnerPolicy +
+model.compare(lm(scale(SI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) + PartnerPolicy +
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = ControlDF,
                  na.action = na.fail))
@@ -824,39 +824,39 @@ congruency %>%
 
 C <- congruency %>%
   dplyr::select(ConSum, id, HI, SI, Persec, ICARTot, Age, Sex, Control, PartnerPolicy,
-                alpha_m, beta_m, beta_v, alpha_v) %>%
+                alpha_m, beta_m, beta_v, alpha_v, Sum) %>%
   plyr::join(testdf2 %>% dplyr::select(id, CorrectFix), by = 'id') %>%
   distinct() %>%
   ungroup() %>%
   mutate(HI = scale(HI), SI = scale(SI),
          Persec = scale(Persec), ICARTot = scale(ICARTot),
-         Age = scale(Age),
+         Age = scale(Age), Sum = scale(Sum),
          ConSum = scale(ConSum), CorrectFix = scale(CorrectFix)) %>% as.data.frame()
 
 #change partner factor level if required
 
-model.compare(lm(HI ~ ConSum + CorrectFix + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
+model.compare(lm(HI ~ ConSum + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
 
 C1 <- C %>% filter(PartnerPolicy == 'Prosocial')
-model.compare(lm(HI ~ ConSum + CorrectFix + Age + Sex + Persec + ICARTot + Control, data = C1, na.action = na.fail))
+model.compare(lm(HI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C1, na.action = na.fail))
 C2 <- C %>% filter(PartnerPolicy == 'Individualist')
-model.compare(lm(HI ~ ConSum + CorrectFix + Age + Sex + Persec + ICARTot + Control, data = C2, na.action = na.fail))
+model.compare(lm(HI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C2, na.action = na.fail))
 C3 <- C %>% filter(PartnerPolicy == 'Competitive')
-model.compare(lm(HI ~ ConSum + CorrectFix + Age + Sex + Persec + ICARTot + Control, data = C3, na.action = na.fail))
+model.compare(lm(HI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C3, na.action = na.fail))
 
-model.compare(lm(SI ~ ConSum + CorrectFix + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
+model.compare(lm(SI ~ ConSum + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
 
 C1b <- C %>% filter(PartnerPolicy == 'Prosocial')
-model.compare(lm(SI ~ ConSum + CorrectFix+  Age + Sex + Persec + ICARTot + Control, data = C1b, na.action = na.fail))
+model.compare(lm(SI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C1b, na.action = na.fail))
 C2b <- C %>% filter(PartnerPolicy == 'Individualist')
-model.compare(lm(SI ~ ConSum + CorrectFix+  Age + Sex + Persec + ICARTot + Control, data = C2b, na.action = na.fail))
+model.compare(lm(SI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C2b, na.action = na.fail))
 C3b <- C %>% filter(PartnerPolicy == 'Competitive')
-model.compare(lm(SI ~ ConSum + CorrectFix+  Age + Sex + Persec + ICARTot + Control, data = C3b, na.action = na.fail))
+model.compare(lm(SI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C3b, na.action = na.fail))
 
 ConReg <- data.frame(
-  Estimate = c(-0.14, 0.06, -0.23, 0.00, 0.23,-0.09),
-  UCI    = c(  -0.08, 0.37, -0.06, 0.00, 0.37, 0.05),
-  LCI    = c(  -0.28,-0.08, -0.40, 0.00, 0.08,-0.61),
+  Estimate = c(-0.18, 0.06, -0.19, 0.00, 0.23,0),
+  UCI    = c(  -0.08, 0.37, -0.09, 0.00, 0.37,0),
+  LCI    = c(  -0.28,-0.08, -0.29, 0.00, 0.08,0),
   p      = c(T, F, T, F, T, F),
   Policy = c('Prosocial', 'Individualist', 'Competitive', 'Prosocial', 'Individualist', 'Competitive'),
   Attribute = c(rep('Harmful Intent', 3), rep('Self Interest', 3)),
@@ -887,6 +887,7 @@ AttributeCon <- ggplot(ConReg)+
         axis.title.x = element_blank(),
         plot.title = element_text(size = 16),
         panel.grid.major.x = element_blank())
+AttributeCon
 
 # Figure 4 ----------------------------------------------------------------
 
@@ -898,8 +899,6 @@ patchwork::wrap_plots(A = pA, b = AttributeCon, design = design4) & plot_annotat
 # Generative ability ------------------------------------------------------
 
 GenReg = testdf2 %>% dplyr::select(id, Sum, ICARTot, CorrectFix, CorrectSim, alpha_m, alpha_v,beta_m, beta_v, PartnerPolicy, Age, Persec, Sex, Control) %>% distinct()
-model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + scale(CorrectFix) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
-                   scale(Persec) + Age + Sex + PartnerPolicy, data = GenReg, na.action = na.fail))
 
 GenRegP = GenReg %>% filter(PartnerPolicy == 'Prosocial')
 model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + scale(CorrectFix) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
@@ -1318,17 +1317,57 @@ SimAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectSim, Sum, PartnerPolicy, id)
   ggridges::theme_ridges()+
   theme(legend.position = 'none')
 
-PredAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectFix, Sum, PartnerPolicy, id) %>% distinct())+
-  geom_density(aes(CorrectFix,fill = PartnerPolicy), alpha = 0.75)+
+rawbaselinePlot <- ggplot(ControlDF %>%
+         rename(`Harmful Intent` = HI,
+                `Self Interest` = SI) %>%
+         pivot_longer(`Harmful Intent`:`Self Interest`, 'Attribution', values_to = 'Value'))+
+  geom_jitter(aes(CorrectFix, Value, color = Attribution, shape = PartnerPolicy),alpha = 0.6)+
+  geom_smooth(aes(CorrectFix, Value, color = Attribution, fill = Attribution), method = 'lm')+
+  labs(x = expression(paste('Participant-partner baseline similarity scores given ',
+                            alpha[ppt]^m,
+                            beta[ppt]^m)),
+       y = 'Attribution Rating')+
+  ggridges::theme_ridges()+
+  theme(legend.position = c(0.1, 0.3),
+        legend.box.background = element_rect(color = 'black', fill = 'white'),
+        legend.title = element_blank())
+
+Cplot <- congruency %>%
+  dplyr::select(ConSum, id, HI, SI, Persec, ICARTot, Age, Sex, Control, PartnerPolicy,
+                alpha_m, beta_m, beta_v, alpha_v) %>%
+  plyr::join(testdf2 %>% dplyr::select(id, CorrectFix), by = 'id') %>%
+  distinct() %>%
+  ungroup() %>% as.data.frame()
+
+PredAPlot <- ggplot(Cplot %>%
+         rename(Baseline = CorrectFix,
+                Learning = ConSum) %>%
+        pivot_longer(c(Baseline, Learning), 'Similarity', values_to = 'Value'))+
+  geom_density_ridges(aes(Value, Similarity, fill = PartnerPolicy), alpha = 0.75,
+                      scale = .99, quantile_lines = TRUE, quantiles = 2,
+                      vline_size = 2)+
   labs(x = expression(paste('Participant-partner similarity scores given ',
                             alpha[ppt]^m,
                             beta[ppt]^m)),
        y = 'Density')+
   scale_fill_brewer(palette = 'Dark2')+
   ggridges::theme_ridges()+
-  theme(legend.position = c(0.1, 0.75))
+  theme(legend.position = c(-0.2, 0.45), legend.title = element_blank())
 
-SimAPlot|PredAPlot & plot_annotation(tag_levels = 'A')
+rawlearningPlot <- ggplot(Cplot %>%
+         rename(`Harmful Intent` = HI,
+                `Self Interest` = SI) %>%
+         pivot_longer(`Harmful Intent`:`Self Interest`, 'Attribution', values_to = 'Value'))+
+  geom_jitter(aes(ConSum, Value, color = Attribution, shape = PartnerPolicy),alpha = 0.6)+
+  geom_smooth(aes(ConSum, Value, color = Attribution, fill = Attribution), method = 'lm')+
+  labs(x = expression(paste('Participant-partner learning similarity scores given ',
+                            alpha[ppt]^m,
+                            beta[ppt]^m)),
+       y = 'Attribution Rating')+
+  ggridges::theme_ridges()+
+  theme(legend.position = 'none')
+
+(SimAPlot|PredAPlot) / (rawbaselinePlot|rawlearningPlot) & plot_annotation(tag_levels = 'A')
 
 # Figure S8 ----------------------------------------------------------
 
