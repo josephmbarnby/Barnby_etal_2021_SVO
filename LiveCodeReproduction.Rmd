@@ -1,0 +1,414 @@
+---
+title: "Live Core Regression Reproduction"
+author: "Barnby, J.M."
+date: "02/09/2021"
+output: 
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+    math: katex
+---
+
+## Introduction
+
+This rmd is intended to act as a live script to process all of the core regression and summary statistics reported in Barnby et al., 2021.
+
+Click each chunk to see a live reproduction of the results reported.
+
+## Library load
+
+```{r library, message = F, error = F, warning = F}
+
+library(tidyverse)
+library(psych)
+library(ggrepel)
+library(R.matlab)
+library(dunn.test)
+
+source("Analysis/Functions.R")
+source("Analysis/Phase1SimulationR.R")
+```
+
+## Data load
+
+```{r data}
+
+ControlDF         <- read.csv('Data/ControlDF.csv') # main df
+Intentions_choice <- read.csv("Data/Intentions_Phase1.csv") # choice sets
+Intentions_guess  <- read.csv("Data/Intentions_Phase2.csv") # choice sets
+RecData           <- readMat('Modelling/Fit_CBM/hbi_models3.mat') # fitted hierarchical parms
+```
+
+## Summary Statistics
+
+```{r summary}
+
+summstat <- rbind(
+psych::describe(ControlDF$Persec),
+psych::describe(ControlDF$ICARTot)
+)
+
+rownames(summstat) <- c('Paranoia', 'ICAR')
+summstat
+
+```
+
+## Behavioral Analysis
+
+### Phase 1
+
+```{r behav_phase1, echo=FALSE, message = F, error = F, warning = F}
+
+Intentions_choice %>%
+    mutate(Prosocial=ifelse(ChoiceAction == 1, 1, 0),
+           Individualistic=ifelse(ChoiceAction == 2, 1, 0),
+           Competitive=ifelse(ChoiceAction == 3, 1, 0)) -> choice_alt
+
+choice_alt %>%
+  group_by(id) %>%
+  mutate(Type1  = ifelse(Type1 == 'Competative', 'Competitive', Type1),
+         Type2  = ifelse(Type2 == 'Competative', 'Competitive', Type2),
+         Choice  = ifelse(Choice == 'Competative', 'Competitive', Choice),
+         pairPI = ifelse((Type1 == 'Prosocial'   & Type2 == 'Individual'  | Type1 == 'Individual'  & Type2 == 'Prosocial'  ) & Choice == 'Prosocial', 1, 0),
+         pairCI = ifelse((Type1 == 'Competitive' & Type2 == 'Individual'  | Type1 == 'Individual'  & Type2 == 'Competitive') & Choice == 'Individual', 1, 0),
+         pairPC = ifelse((Type1 == 'Prosocial'   & Type2 == 'Competitive' | Type1 == 'Competitive' & Type2 == 'Prosocial'  ) & Choice == 'Prosocial', 1, 0),
+         sumPI = sum(pairPI)/6,
+         sumCI = sum(pairCI)/6,
+         sumPC = sum(pairPC)/6) %>%
+  as.data.frame() -> pairComparisons
+
+pairComparisons %>%
+  pivot_longer(sumPI:sumPC, 'pair', 'value') %>%
+  group_by(pair) %>%
+  summarise(sd = sd(value)*100, value = mean(value)*100)
+```
+
+```{r Prosocial-Individualist, message = F, error = F, warning = F}
+model.compare(lm(scale(sumPI) ~ scale(Persec) + scale(ICARTot) + Age + Sex + Control, data = pairComparisons, na.action = na.fail))
+```
+
+```{r Individualist-Competitive, message = F, error = F, warning = F}
+model.compare(lm(scale(sumCI) ~ scale(Persec) + scale(ICARTot) + Age + Sex + Control, data = pairComparisons, na.action = na.fail))
+```
+
+```{r Prosocial-Competitive, message = F, error = F, warning = F}
+#model.compare(lm(scale(sumPC) ~ scale(Persec) + scale(ICARTot) + Age + Sex + Control, data = pairComparisons, na.action = na.fail))
+summary(lm(scale(sumPC) ~ scale(Persec) + scale(ICARTot) + Age + Sex + Control, data = pairComparisons, na.action = na.fail))
+confint(lm(scale(sumPC) ~ scale(Persec) + scale(ICARTot) + Age + Sex + Control, data = pairComparisons, na.action = na.fail))
+```
+
+### Phase 2
+
+#### Accuracy
+
+```{r behav_phase2, echo=FALSE, message = F, error = F, warning = F}
+
+ControlDF %>%
+  group_by(PartnerPolicy) %>%
+  summarise(mean = mean(Sum), sd = sd(Sum))
+```
+
+```{r Overall, message = F, error = F, warning = F}
+#To assess partner policy influence
+ControlDFMod1 <- ControlDF %>%
+  mutate(PartnerPolicy = factor(PartnerPolicy, levels = c('Prosocial', 'Individualist', 'Competitive')))
+model.compare(lm(scale(Sum) ~ PartnerPolicy + #behavioural analysis
+                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDFMod1,
+                 na.action = na.fail))
+
+#change factor level to add different contrasts
+ControlDFMod2 <- ControlDF %>%
+  mutate(PartnerPolicy = factor(PartnerPolicy, levels = c('Individualist', 'Competitive', 'Prosocial'))) # change factor levels for adjusted analysis
+model.compare(lm(scale(Sum) ~ PartnerPolicy + #behavioural analysis
+                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDFMod2,
+                 na.action = na.fail))
+```
+
+```{r Paranoia and general cognition, message = F, error = F, warning = F}
+#to assess paranoia and general cognition on accuracy
+model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail))
+```
+
+```{r Prosocial Accuracy, message = F, error = F, warning = F}
+#within partner assessments
+data1P <- ControlDF %>% filter(PartnerPolicy=='Prosocial')
+model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = data1P,
+                 na.action = na.fail))
+```
+
+```{r Individualist Accuracy, message = F, error = F, warning = F}
+data1I <- ControlDF %>% filter(PartnerPolicy=='Individualist')
+model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = data1I,
+                 na.action = na.fail))
+```
+
+```{r Competitive Accuracy, message = F, error = F, warning = F}
+data1C <- ControlDF %>% filter(PartnerPolicy=='Competitive')
+model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = data1C,
+                 na.action = na.fail))
+
+```
+
+#### Partner Classification
+
+```{r, warning = F, error = F, message=F}
+
+Intentions_guess %>%
+  group_by(PartnerPolicy) %>%
+  filter(Trial == 36, Final_Guess != 'Please select an option') %>%
+  distinct() %>%
+  count(Final_Guess)
+
+Intentions_guess %>%
+  group_by(PartnerPolicy) %>%
+  filter(Trial == 36, Final_Guess != 'Please select an option') %>%
+  mutate(Final_Guess = case_when(
+    Final_Guess == 'Trying to earn as much money as possible' ~ 2,
+    Final_Guess == 'Trying to share as much money between us as possibe' ~ 1,
+    Final_Guess == 'Trying to stop me from earning points' ~ 3 
+  )) %>%
+  distinct() -> modelExplicit
+
+modelExplicit_P <- modelExplicit %>% filter(PartnerPolicy == 'Prosocial')
+modelExplicit_I <- modelExplicit %>% filter(PartnerPolicy == 'Individualist')
+modelExplicit_C <- modelExplicit %>% filter(PartnerPolicy == 'Competative')
+
+kruskal.test(modelExplicit_P$Persec, modelExplicit_P$Final_Guess)
+dunn.test(modelExplicit_P$Persec, modelExplicit_P$Final_Guess, method = 'BH')
+kruskal.test(modelExplicit_I$Persec, modelExplicit_I$Final_Guess)
+kruskal.test(modelExplicit_C$Persec, modelExplicit_C$Final_Guess)
+
+```
+
+#### Intent Attributions
+
+```{r intent_behav_overall, message = F, error = F, warning = F}
+
+model.compare(lm(scale(HI) ~ scale(Sum) + scale(Persec) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDFMod1,
+           na.action = na.fail))
+
+model.compare(lm(scale(SI) ~ scale(Sum) + scale(Persec) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDFMod1,
+           na.action = na.fail))
+```
+
+```{r intent_behav_withinsubjs, message = F, error = F, warning = F}
+
+#Within partner analysis
+model.compare(lm(scale(HI) ~ scale(Sum) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+           data = data1P,
+           na.action = na.fail))
+model.compare(lm(scale(HI) ~ scale(Sum) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+           data = data1I,
+           na.action = na.fail))
+model.compare(lm(scale(HI) ~ scale(Sum) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+           data = data1C,
+           na.action = na.fail))
+
+model.compare(lm(scale(SI) ~ scale(Sum) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+           data = data1P,
+           na.action = na.fail))
+model.compare(lm(scale(SI) ~ scale(Sum) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+           data = data1I,
+           na.action = na.fail))
+model.compare(lm(scale(SI) ~ scale(Sum) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+           data = data1C,
+           na.action = na.fail))
+
+```
+
+## Computational Analysis
+
+### Phase 1
+
+```{r compu_phase1_hierarchical, warning = F, message = F}
+
+#Hierarchical means
+1/(1+exp(-RecData$cbm[,,1]$output[,,1]$group.mean[[1]][[1]][,1]))*15
+RecData$cbm[,,1]$output[,,1]$group.mean[[1]][[1]][,2]
+
+#Hierarchical error bars
+RecData$cbm[,,1]$output[,,1]$group.hierarchical.errorbar[[1]][[1]][,1]
+RecData$cbm[,,1]$output[,,1]$group.hierarchical.errorbar[[1]][[1]][,2]
+
+```
+
+```{r compu_phase1_centraltends, warning=F, message=F, error=F}
+
+
+model.compare(lm(scale(alpha_m) ~ scale(beta_m) + scale(ICARTot) + scale(Persec) + scale(Age) + Sex + Control,
+                 data =ControlDF,
+                 na.action = na.fail))
+
+model.compare(lm(scale(beta_m) ~ scale(alpha_m) + scale(ICARTot) + scale(Persec) + scale(Age) + Sex + Control,
+                 data =ControlDF,
+                 na.action = na.fail))
+
+
+```
+
+### Phase 2
+
+#### Accuracy
+
+Overall model
+
+```{r compu_phase2_overall_accuracy, warning=F, message=F, error=F}
+
+#Overall accuracy
+model.compare(lm(scale(Sum) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix) +
+                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail))
+
+#Persecutory Ideation by parameters and covariates
+model.compare(lm(scale(Persec) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix)+
+                   scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail))
+
+#ICAR by parameters and covariates
+model.compare(lm(scale(ICARTot) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix)+
+                   scale(Persec) + scale(Age) + Sex + Control,
+                 data =ControlDF,
+                 na.action = na.fail))
+
+#Within partners
+model.compare(lm(scale(Sum) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix) +
+                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = data1P,
+                 na.action = na.fail))
+model.compare(lm(scale(Sum) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix) +
+                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = data1I,
+                 na.action = na.fail))
+model.compare(lm(scale(Sum) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix) +
+                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = data1C,
+                 na.action = na.fail))
+
+```
+
+Post-hoc exploration
+
+```{r compu_phase2_accuracy, warning=F, message=F, error=F}
+
+#Layer1
+l1 <- lm(scale(Sum) ~ scale(ICARTot) + Age + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail)
+summary(l1)
+#Layer 2
+l2 <- lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail)
+summary(l2)
+#Layer 3
+l3 <- lm(scale(Sum) ~ scale(ProbFix) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l3)
+#Layer 4
+l4      <- lm(scale(Sum) ~ scale(alpha_v) + scale(beta_v) + scale(ProbFix) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+                    data = ControlDF,
+                    na.action = na.fail)
+summary(l4)
+#Layer 5
+l5      <- lm(scale(Sum) ~ scale(ProbFix) * scale(alpha_v) * scale(beta_v) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l5)
+```
+
+#### Intention Attributions
+
+Overall model
+
+```{r compu_phase2_overall_intent, warning=F, message=F, error=F}
+
+model.compare(lm(scale(HI) ~ scale(alpha_v) + scale(beta_v) + scale(ProbFix) + scale(Sum) +
+      PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail))
+
+model.compare(lm(scale(SI) ~ scale(alpha_v) + scale(beta_v) + scale(ProbFix) + scale(Sum) +
+      PartnerPolicy + scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail))
+```
+
+Post-hoc exploration
+
+```{r compu_phase2_within_intent, warning=F, message=F, error=F}
+
+#Harmful Intent
+
+#Layer1
+l1HI <- lm(scale(HI) ~ scale(ICARTot) + PartnerPolicy + Age + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail)
+summary(l1HI)
+#Layer 2
+l2HI <- lm(scale(HI) ~ scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail)
+summary(l2HI)
+#Layer 3
+l3HI <- lm(scale(HI) ~ scale(Persec) + scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l3HI)
+
+#Layer 4
+l4HI <- lm(scale(HI) ~ scale(ProbFix) + scale(Persec) + scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l4HI)
+
+#Layer 5
+l5HI <- lm(scale(HI) ~ scale(alpha_v) + scale(beta_v) + scale(ProbFix) + scale(Persec) + scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l5HI)
+
+#Self Interest
+
+#Layer1
+l1SI <- lm(scale(SI) ~ scale(ICARTot) + PartnerPolicy + Age + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail)
+summary(l1SI)
+#Layer 2
+l2SI <- lm(scale(SI) ~ scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail)
+summary(l2SI)
+#Layer 3
+l3SI <- lm(scale(SI) ~ scale(Persec) + scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l3SI)
+
+#Layer 4
+l4SI <- lm(scale(SI) ~ scale(ProbFix) + scale(Persec) + scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l4SI)
+
+#Layer 5
+l5SI <- lm(scale(SI) ~ scale(alpha_v) + scale(beta_v) + scale(ProbFix) + scale(Persec) + scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l5SI)
+
+```
+
+#### 

@@ -8,12 +8,12 @@
 # IT Analysis  --------------------------------------------------------------
 
 model.compare <- function(x){ # X needs to be a model object, e.g. lm, clm, lmer
-  
+
   library(MuMIn)
   library(knitr)
 
 #run MuMIn model averaging
-x.set          <- dredge    (x, REML = FALSE, trace = 2)
+x.set          <- dredge    (x, REML = F)
 x.models       <- get.models(x.set, subset = delta<2)
 x.a            <- model.avg (x.models, adjusted=FALSE, revised.var=TRUE)
 
@@ -30,10 +30,10 @@ print(confint(x.a))
 #
 #ggplot(coefs %>%
 #                       mutate(term = fct_reorder(term, estimate, .desc = T))) +
-#  
+#
 #  geom_pointrange(aes(x=term, y=estimate, ymin=conf.low, ymax=conf.high)) +
 #  geom_hline(yintercept = 0, col = "orange") +
-#  
+#
 #  theme_ipsum()+
 #  theme(axis.title.x = element_blank())
 #
@@ -55,7 +55,7 @@ mysamp <- function(n, m, s, lwr, upr, nnorm) {
   samp <- samp[samp >= lwr & samp <= upr]
   if (length(samp) >= n) {
     return(sample(samp, n))
-  }  
+  }
   stop(simpleError("Not enough values to sample from. Try increasing nnorm."))
 }
 

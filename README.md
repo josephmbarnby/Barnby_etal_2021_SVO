@@ -1,9 +1,9 @@
 # IntentionsGameModel
 Models and data describing participant social learning about different partner Social-Value Orientations (SVO) given their own SVO preferences in Barnby et al., 2021.
 
-![Abstract](GraphicalAbstractV2.png)
+![Abstract](GraphicalAbstract.png)
 
-# Models
+# Computational Models
 
 Data structure required for models are like so
 
@@ -48,3 +48,5 @@ All visualisations and regression models are completed with this script.
 Required packages for each analyses are loaded and listed at the start.
 
 <i>NB: Graphical abstract and Figure 1 made using Adobe Illustrator </i>
+
+If you want to simply recheck the models used for the main regression models reported in the paper, all you need to do is open 'LiveCodeReproduction.Rmd' in your favorite IDE and click each code chunk. All code chunks in this script are listed in the same order as that in the manuscript.

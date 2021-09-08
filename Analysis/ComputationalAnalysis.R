@@ -1,5 +1,7 @@
 #Intentions Game Master file
 #Joe Barnby
+
+#For any suggestions or queries, please email:
 #Joe.barnby@kcl.ac.uk | j.barnby@uq.edu.au
 
 rm(list=ls(all=T))
@@ -70,97 +72,6 @@ simulatedHeur_DF <- do.call(rbind, simulatedHeur)
                       # Go into MatLab scripts for computational #
                       # work completed using the CBM functions  ##
 
-# Simple BIC Compare ------------------------------------------------------
-library(R.matlab)
-
-RecData2Parm    <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model1.mat')
-RecData4Parm    <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model2.mat')
-RecData2ParmIgn <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model3.mat')
-RecDataShrink   <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model4.mat')
-RecDataZeta     <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model5.mat')
-RecData5ParmFav <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model6.mat')
-RedData6ParmEPS2<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model7.mat')
-RecData6ParmEPS1<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model8.mat')
-RecData6ParmACT <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model9.mat')
-RecData6ParmNULL<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model10.mat')
-RecDataRW4      <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model11.mat')
-RecDataRW5UpDown<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model12.mat')
-RecDataRW53lrc  <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model13.mat')
-RecDataRW5      <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model14.mat')
-
-RecDataIndiv <- data.frame(Log = rep(NA, 697*14),
-                           Model =
-                             c(
-                               rep('FourParm', 697), rep('BetaOnly', 697),
-                               rep('ChoiceBias', 697), rep('ChoiceBias2', 697),
-                               rep('ActionBias', 697), rep('SubjIgnore', 697),
-                               rep('FavBias', 697), rep('Null', 697),
-                               rep('Shrink', 697), rep('Zeta', 697),
-                               rep('RW4', 697), rep('RW5', 697),
-                               rep('RW5UpDown', 697), rep('RW53lrc', 697)),
-                           Par = rep(NA, 697*14),
-                           id = rep(1:697,14),
-                           Type = c(rep('Bayes', 697*10), rep('Heuristic', 697*4)),
-                           ModelNum = c(rep(2, 697),rep(1, 697),rep(7, 697),rep(8, 697),
-                                        rep(9, 697),rep(3, 697),rep(6, 697),rep(10, 697),
-                                        rep(4, 697),rep(5, 697),rep(11, 697),rep(14, 697),
-                                        rep(12, 697),rep(13, 697)))
-RecDataIndiv[which(RecDataIndiv$Model=='FourParm'   ),1] <- RecData4Parm$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='BetaOnly'   ),1] <- RecData2Parm$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='ChoiceBias' ),1] <- RecData6ParmEPS1$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='ChoiceBias2'),1] <- RedData6ParmEPS2$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='ActionBias' ),1] <- RecData6ParmACT $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='SubjIgnore' ),1] <- RecData2ParmIgn $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='FavBias'    ),1] <- RecData5ParmFav $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='Null'       ),1] <- RecData6ParmNULL$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='Shrink'     ),1] <- RecDataShrink   $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='Zeta'       ),1] <- RecDataZeta     $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='RW4'        ),1] <- RecDataRW4      $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='RW5'        ),1] <- RecDataRW5      $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='RW5UpDown'  ),1] <- RecDataRW5UpDown$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='RW53lrc'    ),1] <- RecDataRW53lrc  $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[,3] <- c(rep(4, 697), rep(2, 697), rep(5, 697), rep(6, 697), rep(6, 697), rep(2, 697),
-                      rep(5, 697), rep(6, 697), rep(5, 697), rep(5, 697), rep(4, 697), rep(5, 697),
-                      rep(5, 697), rep(6, 697))
-
-RecDataIndiv %>%
-  mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
-  pivot_wider(id_cols = id, names_from = 'Model', values_from = 'BIC') %>%
-  pivot_longer(3:11, names_to = 'Model', values_to = 'BIC') %>%
-  ggplot()+
-  geom_point(aes(FourParm, BIC, color = Model), alpha = 0.75)+
-  coord_cartesian(xlim = c(25, 100), ylim = c(25, 150))+
-  geom_abline(intercept = 0, slope = 1)+
-  geom_abline(intercept = 4, slope = 1,  alpha = 0.75)+
-  geom_abline(intercept = -4, slope = 1, alpha = 0.75)+
-  geom_abline(intercept = 10, slope = 1, alpha = 0.5)+
-  geom_abline(intercept = -10, slope = 1,alpha = 0.5)+
-  labs(X = 'Winning Model BIC', y = 'BIC of other models')+
-  theme_classic()
-
-RecDataIndiv %>%
-  mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
-  ggplot()+
-  geom_jitter(aes(factor(ModelNum), BIC, color = Type),
-              alpha = 0.05, show.legend = F)+
-  stat_summary(aes(factor(ModelNum), BIC, color = Type), key_glyph = 'pointrange')+
-  geom_text(data= RecDataIndiv %>%
-              mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
-              group_by(ModelNum) %>%
-              summarise(BIC = mean(BIC)),
-            aes(factor(ModelNum), round(BIC,2), label = round(BIC,2)),
-            check_overlap = T, nudge_y = -5, fontface = 'bold')+
-  scale_color_brewer(palette = 'Set1')+
-  ggpubr::stat_compare_means(aes(factor(ModelNum), BIC, color = Type), ref.group = '2',
-                             label = 'p.signif', method = 'wilcox.test', paired = T, show.legend = F)+
-  labs(x = 'Model', y = 'BIC')+
-  ggdist::theme_tidybayes()+
-  theme(axis.title = element_text(size = 14),
-        axis.text = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 14),
-        legend.position = c(0.2, 0.8))
-
 # Matlab data load --------------------------------------------
 
 # load data from matlab
@@ -180,10 +91,11 @@ RecData.p.exceed             <- as.data.frame(RecData.p.exceed)
 colnames(RecData.frequency)  <- c('B_4','B_2','B_SubjIgnore')
 colnames(RecData.exceed)     <- c('B_4','B_2','B_SubjIgnore')
 colnames(RecData.p.exceed)   <- c('B_4','B_2','B_SubjIgnore')
-colnames(RecData.groupmeans[[1]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')#'kappa'
-colnames(RecData.parameters[[1]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')#'kappa'
-colnames(RecData.grouperror[[1]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')#'kappa'
-# Transform between 0 and positive integer
+colnames(RecData.groupmeans[[1]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')
+colnames(RecData.parameters[[1]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')
+colnames(RecData.grouperror[[1]][[1]]) <- c('alpha_m', 'beta_m', 'alpha_v', 'beta_v')
+
+# Transform parameters as they would have been within the model
 RecData.groupmeans[[1]][[1]][,1] <- 15*(1/(1+exp(-RecData.groupmeans[[1]][[1]][,1])))
 RecData.groupmeans[[1]][[1]][,3] <- exp(RecData.groupmeans[[1]][[1]][,3])
 RecData.groupmeans[[1]][[1]][,4] <- exp(RecData.groupmeans[[1]][[1]][,4])
@@ -206,7 +118,7 @@ groupplot <- RecData.groupmeans[[1]][[1]] %>%
 RecData.frequency %>%
   as.data.frame() %>%
   pivot_longer(1:3, names_to = 'model', values_to = 'metric') %>%
-  mutate(type = 'Freqency') -> freq
+  mutate(type = 'Frequency') -> freq
 RecData.exceed %>%
   as.data.frame() %>%
   pivot_longer(1:3, names_to = 'model', values_to = 'metric') %>%
@@ -274,7 +186,7 @@ SPlot <- ggplot(Simplex, aes(as.numeric(alpha_m), as.numeric(beta_m)))+
                         breaks = c(0, 0.5, 1),
                         labels = c('Competitive', 'Individualist', 'Prosocial'))+
   geom_point(data = groupplot.parms2, aes(alpha_m*(100/15), beta_m*(100/20)))+
-  #geom_density_2d(data = groupplot.parms2, aes(alpha_m*(100/15), beta_m*(100/20)))+
+  geom_density_2d(data = groupplot.parms2, aes(alpha_m*(100/15), beta_m*(100/20)))+
   #geom_smooth(data = groupplot.parms2, aes(alpha_m*(100/15), beta_m*(100/20)), method = 'lm')+
   scale_x_continuous(breaks = c(0, 33, 66, 100), labels = c(0, 5, 10, 15))+
   scale_y_continuous(breaks = c(-100, -50, 0, 50, 100), labels = c(-20, -10, 0, 10, 20))+
@@ -294,6 +206,7 @@ SPlot
 
 p_alpha <- ggplot(groupplot.parms2, aes(alpha_m, alpha_v))+
   geom_point()+
+  geom_smooth(method = "lm", linetype = 2)+
   geom_smooth(formula = y ~ x + I(x^2), method = "lm")+
   coord_cartesian(ylim = c(0, 10), xlim = c(0, 15))+
   scale_x_continuous(limits = c(0, 15), expand = c(0,0))+
@@ -336,7 +249,8 @@ p_alpha_edit2
 
 p_beta <- ggplot(groupplot.parms2, aes(beta_m, beta_v))+
   geom_point()+
-  geom_smooth(method = "lm")+
+  geom_smooth(method = "lm", linetype = 2)+
+  geom_smooth(formula = y ~ x + I(x^2), method = "lm")+
   coord_cartesian(ylim = c(0, 10), xlim = c(-20, 20))+
   scale_x_continuous(limits = c(-20, 20), expand = c(0,0))+
   scale_y_continuous(limits = c(0, 10), expand = c(0,0))+
@@ -349,6 +263,7 @@ top2 <- ggplot(groupplot.parms2, aes(beta_m))+
   geom_density(fill = "#303F9F")+
   #geom_vline(xintercept = -6.08, size = 1)+
   geom_segment(aes(y = dnorm(beta_m), x = -6.08,xend= -6.08, yend=0.01)) +
+  geom_segment(aes(y = dnorm(beta_m), x = -5.63,xend= -5.63, yend=0.01), colour = 'red') +
   scale_y_continuous(limits = c(0,0.09)) +
   scale_x_continuous(limits = c(-20, 20), expand = c(0,0))+
   coord_cartesian(xlim = c(-20, 20))+
@@ -357,6 +272,7 @@ side2 <- ggplot(groupplot.parms2, aes(beta_v))+
   geom_density(fill = '#9575CD')+
   #geom_vline(xintercept = 4.06, size = 1)+
   geom_segment(aes(y = dnorm(beta_v), x = 4.06, xend=4.06, yend=0.25)) +
+  geom_segment(aes(y = dnorm(beta_v), x = 6.01,xend= 6.01, yend=0.25), colour = 'red') +
   scale_y_continuous(limits = c(0,0.3)) +
   scale_x_continuous(limits = c(0, 10), expand = c(0,0))+
   coord_flip(xlim = c(0, 10))+
@@ -475,35 +391,14 @@ parmCheck <- Phase1_parms %>%
                       beta_phase2 = 2) %>%
                mutate(id = 1:697), by = 'id')
 
-ggcorrplot::ggcorrplot(cor(parmCheck %>% dplyr::select(1:2, 4:5)), lab = T, type = 'upper')
+ggcorrplot::ggcorrplot(cor(parmCheck %>% dplyr::select(1:2, 4:5)), type = 'upper')
 cor.test(parmCheck$alpha_phase1, parmCheck$alpha_phase2)
 cor.test(parmCheck$beta_phase1, parmCheck$beta_phase2)
-
-parmCheck %>%
-  pivot_longer(c(1, 4), names_to = 'alpha', values_to = 'alpha_value') %>%
-  pivot_longer(c(1, 3), names_to = 'beta', values_to = 'beta_value') %>%
-  mutate(alpha = ifelse(alpha == 'alpha_phase2', 'Phase 1 + 2', 'Phase1 Only'),
-         beta = ifelse(beta == 'beta_phase2', 'Phase 1 + 2', 'Phase1 Only')) -> parmCheck.P
-
-ggplot(parmCheck) +
-  geom_point( aes(alpha_phase1, alpha_phase2))+
-  geom_smooth(aes(alpha_phase1, alpha_phase2))+
-
-  ggplot(parmCheck) +
-  geom_point( aes(beta_phase1, beta_phase2))+
-  geom_smooth(aes(beta_phase1, beta_phase2))+
-
-  ggplot(parmCheck)+
-  geom_density(aes(alpha_phase1), color = 'grey')+
-  geom_density(aes(alpha_phase2))+
-  ggplot(parmCheck)+
-  geom_density(aes(beta_phase1), color = 'grey')+
-  geom_density(aes(beta_phase2))
 
 # Model Error and assessment -------------------------------------------------------
 
 # Load data and wrangle
-RecError <- readMat('Modelling/LaplaceFittedModels/SimulatedData/modelError_Generative.mat')
+RecError <- readMat('Data/SimulatedData/modelError_Generative.mat')
 
 loglikstats <- data.frame(lik1 = RecError$lik1,
                           lik2 = RecError$lik2,
@@ -520,6 +415,7 @@ congruency      <- matrix(NA, nrow = 697, ncol = 36)
 pptprob1        <- matrix(NA, nrow = 697, ncol = 36)
 simA            <- matrix(NA, nrow = 697, ncol = 54)
 simAFix         <- matrix(NA, nrow = 697, ncol = 36)
+simAProbFix     <- matrix(NA, nrow = 697, ncol = 36)
 
 for (i in 1:697){
   probabilities[i,] <- as.numeric(RecError$action[[i]][[1]])
@@ -529,6 +425,7 @@ for (i in 1:697){
   congruency[i,]      <- as.numeric(t(RecError$cong[[i]][[1]]))
   simA[i,]   <- as.numeric(RecError$simA[[i]][[1]][1:54,])
   simAFix[i,]<- as.numeric(RecError$simAFix[[i]][[1]][19:54,])
+  simAProbFix[i,]<- as.numeric(RecError$probfix[[i]][[1]][19:54,])
 }
 
 probabilities <- as.data.frame(probabilities)
@@ -537,11 +434,13 @@ probabilities.2 <- as.data.frame(probabilities.2)
 pptprob1 <- as.data.frame(pptprob1)
 simA <- as.data.frame(simA)
 simAFix <- as.data.frame(simAFix)
+simAProbFix <- as.data.frame(simAProbFix)
 congruency <- as.data.frame(congruency)
 congruency$ID <- 1:697
 probabilities$ID <- 1:697
 simA$ID <- 1:697
 simAFix$ID <- 1:697
+simAProbFix$ID <- 1:697
 pptprob1$ID <- 1:697
 probabilities.1$ID <- 1:697
 probabilities.2$ID <- 1:697
@@ -549,6 +448,7 @@ colnames(probabilities) <- c(1:54, 'id')
 colnames(congruency) <- c(1:36, 'id')
 colnames(simA) <- c(1:54, 'id')
 colnames(simAFix) <- c(1:36, 'id')
+colnames(simAProbFix) <- c(1:36, 'id')
 colnames(probabilities.1) <- c(1:18, 'id')
 colnames(probabilities.2) <- c(19:54, 'id')
 colnames(pptprob1) <- c(19:54, 'id')
@@ -566,6 +466,8 @@ simA %>%
   pivot_longer(1:54, names_to = 'Trial', values_to = 'simA') -> simA.edit
 simAFix %>%
   pivot_longer(1:36, names_to = 'Trial', values_to = 'simAFixed') -> simAFix.edit
+simAProbFix %>%
+  pivot_longer(1:36, names_to = 'Trial', values_to = 'simAProbFixed') -> simAProbFix.edit
 
 non_listsimA <- as.data.frame(matrix(NA, nrow = 697, ncol = 55))
 for (i in 1:697){
@@ -589,11 +491,13 @@ non_listsimA %>%
          CorrectSim = sum(CorrectSim)) %>%
   plyr::join(controlling %>% dplyr::select(id, ll, lik1, lik2), by = 'id') %>%
   plyr::join(simAFix.edit %>% group_by(id) %>% mutate(Trial = 19:54), by = c('id', 'Trial')) %>%
+  plyr::join(simAProbFix.edit %>% group_by(id) %>% mutate(Trial = 19:54), by = c('id', 'Trial')) %>%
   plyr::join(indivParmsB %>% dplyr::select(alpha_v, beta_v, alpha_m, beta_m, id), by = 'id') %>%
   mutate(CorrectFix = ifelse(simAFixed == Answer, 1, 0)) %>%
   group_by(id) %>%
   distinct() %>%
-  mutate(CorrectFix = sum(CorrectFix)) %>%
+  mutate(CorrectFix = sum(CorrectFix),
+         ProbFix    = sum(simAProbFixed)) %>%
   distinct() -> testdf2
 
 p.plots <- cbind(probabilities.edit, probabilities.p.edit, simA.edit)
@@ -729,191 +633,301 @@ patchwork::wrap_plots(A = Ptop, B = llPlot, C = SPlot + theme(legend.position = 
 # Core Regression Models -------------------------------------------------------------
 
 library(lme4)
-ControlDF <- plyr::join(indivParmsB, testdf2 %>% dplyr::select(CorrectFix, CorrectSim, id), by = 'id') %>% distinct()
-ControlDF <- ControlDF %>% mutate(PartnerPolicy = factor(PartnerPolicy, levels = c('Competitive', 'Individualist','Prosocial')))
+ControlDF <- plyr::join(indivParmsB, testdf2 %>% dplyr::select(CorrectFix, CorrectSim, ProbFix, id), by = 'id') %>% distinct()
+ControlDF <- ControlDF %>%
+  mutate(PartnerPolicy = factor(PartnerPolicy, levels = c('Competitive', 'Individualist','Prosocial')),
+         Sex = ifelse(Sex == 'Female', 1, 0))
+
+#write.csv(ControlDF, 'Data/ControlDF.csv')
+#ControlDF <- read.csv('Data/ControlDF.csv')
+
 #Total correct score by parameters and covariates
-model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + offset(scale(CorrectFix))+
+model.compare(lm(scale(Sum) ~ #behavioural analysis
+                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail))
+
+summary(lm(scale(Sum) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix)+
+                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail))
+
+model.compare(lm(scale(CorrectSim) ~ scale(alpha_v) * scale(ProbFix) * scale(beta_v) +
                    scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
                  data = ControlDF,
                  na.action = na.fail))
 
 #Persecutory Ideation by parameters and covariates
-model.compare(lm(scale(Persec) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix)+
+model.compare(lm(scale(Persec) ~ scale(alpha_v) + scale(beta_v) + scale(ProbFix)+
                    scale(ICARTot) + scale(Age) + Sex + Control,
                  data = ControlDF,
                  na.action = na.fail))
 
 #ICAR by parameters and covariates
-model.compare(lm(scale(ICARTot) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix)+
+model.compare(lm(scale(ICARTot) ~ scale(alpha_v) + scale(beta_v) + scale(ProbFix)+
                    scale(Persec) + scale(Age) + Sex + Control,
                  data =ControlDF,
                  na.action = na.fail))
 
+#Parameters themselves
+model.compare(lm(scale(beta_v) ~ scale(alpha_v) +
+                   scale(ICARTot) + scale(Persec) + scale(Age) + Sex + Control,
+                 data =ControlDF,
+                 na.action = na.fail))
+
+model.compare(lm(scale(alpha_m) ~ scale(beta_m) +
+                   scale(ICARTot) + scale(Persec) + scale(Age) + Sex + Control,
+                 data =ControlDF,
+                 na.action = na.fail))
+
+plot(bootnet::estimateNetwork(
+  data = ControlDF %>%
+    dplyr::select(alpha_m, alpha_v, beta_m, beta_v, Persec, ICARTot, Age, Sex, Control),
+  default = 'EBICglasso'))
+
 #HI by parameters and covariates
-model.compare(lm(scale(HI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) + PartnerPolicy +
+#Layer1
+l1 <- lm(scale(HI) ~ PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail)
+summary(l1)
+#Layer 2
+l2 <- lm(scale(HI) ~ scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+                 data = ControlDF,
+                 na.action = na.fail)
+summary(l2)
+#Layer 3
+l3 <- lm(scale(HI) ~ scale(Sum) + scale(Persec) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+summary(l3)
+#Layer 4
+l4      <- lm(scale(HI) ~ scale(ProbFix) + scale(Sum) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+                    data = ControlDF,
+                    na.action = na.fail)
+summary(l4)
+#Layer 5
+l5      <- lm(scale(HI) ~ scale(ProbFix) + scale(alpha_v) + scale(beta_v) + scale(Persec) + scale(Sum) + PartnerPolicy + scale(ICARTot) + Age + Sex + Control,
+           data = ControlDF,
+           na.action = na.fail)
+l5a      <- lm(scale(Sum) ~ scale(ProbFix) * scale(alpha_v) + scale(beta_v) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+              data = ControlDF,
+              na.action = na.fail)
+l5b      <- lm(scale(Sum) ~ scale(ProbFix) * scale(beta_v) * scale(alpha_v)  + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
+              data = ControlDF,
+              na.action = na.fail)
+
+summary(l5a)
+
+rbind(
+broom::glance(l1),
+broom::glance(l2),
+broom::glance(l3),
+broom::glance(l4),
+broom::glance(l5)
+)
+
+#Mediation
+fit.dv        <- lm(Sum ~ Persec + beta_v + ProbFix + ICARTot + Age + Sex + Control,
+                   data = ControlDF %>% filter(PartnerPolicy == 'Competitive'),
+                   na.action = na.fail)
+fit.mediator <- lm(Persec ~  beta_v + ProbFix + ICARTot + Age + Sex + Control,
+                    data = ControlDF %>% filter(PartnerPolicy == 'Competitive'),
+                    na.action = na.fail)
+
+medHI <- mediation::mediate(fit.mediator, fit.dv, treat='ProbFix', mediator='Persec', boot=T)
+summary(medHI)
+
+#Full model
+model.compare(lm(scale(HI) ~ scale(alpha_v) +  scale(beta_v) + scale(ProbFix) + scale(Sum) + PartnerPolicy +
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = ControlDF,
                  na.action = na.fail))
 
 #SI by parameters and covariates
-model.compare(lm(scale(SI) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) + PartnerPolicy +
+model.compare(lm(scale(SI) ~ scale(alpha_v) + scale(beta_v) + scale(ProbFix) + scale(Sum) + PartnerPolicy +
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = ControlDF,
                  na.action = na.fail))
 
-#For each sum
-data1c = ControlDF %>% filter(PartnerPolicy=='Competitive')
-model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) +
-                   scale(Persec) + scale(ICARTot) + Sex + scale(Age) + Control,
-                 data = data1c,
-                 na.action = na.fail))
+plot(bootnet::estimateNetwork(
+  data = ControlDF %>%
+    dplyr::select(ProbFix, alpha_v, HI, SI, beta_v, Persec, ICARTot, Age, Sex, Control),
+  default = 'ggmModSelect'))
 
-data2c = ControlDF %>% filter(PartnerPolicy=='Individualist')
-model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) +
-                   scale(Persec) + scale(ICARTot) + Sex + scale(Age) + Control,
-                 data = data2c,
-                 na.action = na.fail))
+# Figure 2 ----------------------------------------------------------------
 
-data3c = ControlDF %>% filter(PartnerPolicy=='Prosocial')
-model.compare(lm(scale(Sum) ~ scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) + scale(CorrectFix) +
-                   scale(Persec) + scale(ICARTot) + Sex + scale(Age) + Control,
-                 data = data3c,
-                 na.action = na.fail))
-
-pAll <- data.frame(
-  Estimate = c(-0.026, 0.180, 0.414, 0.870, 0.740, 0.171,-0.038, 0.097, 0.153, 0.002,-0.590, 0.767),
-  conf.low = c(-0.110, 0.119, 0.356, 0.810, 0.631, 0.077,-0.111, 0.021, 0.089,-0.049,-0.695, 0.704),
-  conf.high =c( 0.013, 0.241, 0.472, 0.930, 0.840, 0.270, 0.040, 0.173, 0.217, 0.083,-0.484, 0.830),
-  Significant = c(F, T, T, T, T, T, F, T, T, F, T, T),
-  Var = rep(c('alpha_m', 'alpha_v', 'beta_m', 'beta_v'), 3),
-  Policy = c(rep('Competitive', 4), rep('Individualist', 4), rep('Prosocial', 4))
-
+Regressions <- tribble(
+  ~Trait,   ~Value, ~CILow, ~CIHigh, ~Partner,
+  'Paranoia',              -0.04, -0.13,  0.02,  "Overall",
+  'General Cognition',      0.07,  0.00,  0.15,  "Overall",
+  'Paranoia',              -0.10, -0.23,  0.03, "Prosocial",
+  'General Cognition',      0.19,  0.06,  0.32, "Prosocial",
+  'Paranoia',              -   0,     0,     0, "Individualist",
+  'General Cognition',      0.18,  0.06,  0.30, "Individualist",
+  'Paranoia',              -0.12, -0.26,  0.02, "Competitive",
+  'General Cognition',      0.  ,     0,     0, "Competitive",
+  'Across Sample',          0.00, 0.00, 0.00, "Prosocial",
+  'Across Sample',         -1.38,-1.52,-1.23, "Individualist",
+  'Across Sample',         -0.56,-0.71,-0.42, "Competitive"
 )
 
-pA <- ggplot(pAll)+
-  geom_bar(aes(Var, Estimate, fill = Policy, alpha = Significant), color = 'black', stat ='identity', position = 'dodge')+
-  geom_errorbar(aes(Var, Estimate,group = Policy, ymin= conf.low, ymax=conf.high),
-                color = 'black', stat ='identity', position = 'dodge')+
-  labs(title = 'Total Correct Predictions',
-       subtitle = '(Controlling for Age, Sex, ICAR Score, Persecutory Ideation, Participant-Partner Baseline Similarity, Task Comprehension)',
-       y = expression(paste(beta, ' weight | 95% Confidence Interval'))
-  )+
-  scale_x_discrete(labels = c(expression(alpha[ppt]^m), expression(alpha^sigma),expression(beta[ppt]^m),expression(beta^sigma)
-  ))+
-  scale_fill_brewer(name = 'Partner Policy', palette = 'Dark2')+
-  coord_cartesian(ylim = c(-1, 1))+
-  theme_minimal()+
-  theme(legend.position = 'none',
-        legend.text = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        axis.text.y = element_text(size = 14),
-        axis.text.x = element_text(size = 18),
-        axis.title.y = element_text(size = 14),
-        axis.title.x = element_blank(),
-        plot.title = element_text(size = 16),
-        panel.grid.major.x = element_blank())
-pA
+Regress <- Regressions %>%
+  filter(Trait != "Across Sample") %>%
+  mutate(Partner = factor(Partner,
+                          levels = c("Overall",
+                                     "Prosocial",
+                                     "Individualist",
+                                     "Competitive")),
+         Trait   = factor(Trait,
+                          levels = c("Paranoia",
+                                     "General Cognition"))) %>%
 
-# Congruency analysis -----------------------------------------------------
+  ggplot()+
+  geom_bar(
+    aes(Trait, Value, fill = Partner), stat = 'identity', position = 'dodge') +
+  geom_errorbar(
+    aes(Trait, Value, ymin = CILow,ymax = CIHigh,group = Partner
+    ), width = 0.2, position = position_dodge(0.9)) +
 
-congruency %>%
-  pivot_longer(1:36, 'Trial', values_to = 'Con') %>%
-  group_by(id) %>%
-  mutate(ConSum = sum(Con)) %>%
-  plyr::join(indivParmsB, by = 'id') -> congruency
+  scale_fill_manual(values = c("#E7298A" , "#7570B3", "#D95F02", "#1B9E77"))+
 
-C <- congruency %>%
-  dplyr::select(ConSum, id, HI, SI, Persec, ICARTot, Age, Sex, Control, PartnerPolicy,Sum) %>%
-  plyr::join(testdf2 %>% dplyr::select(id, CorrectFix), by = 'id') %>%
+  labs(x = "",
+       y = "Regression Coefficient") +
+
+  bbplot::bbc_style() +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 14, colour = "grey"),
+        legend.direction = "vertical",
+        legend.position = c(0.75, 0.95),
+        axis.title.y = element_text(size = 10 ))
+Regress
+
+AcrossSamp <- Regressions %>%
+
+  filter(Trait == "Across Sample") %>%
+  mutate(Partner = factor(Partner,
+                          levels = c("Prosocial", "Competitive", "Individualist"))) %>%
+
+  ggplot()+
+  geom_bar(
+    aes(Partner, Value),
+    fill = "#2E86C1",
+    stat = 'identity',
+    position = 'dodge') +
+  geom_errorbar(
+    aes(Partner, Value,
+        ymin = CILow,
+        ymax = CIHigh
+    ),
+    width = 0.2,
+    position = position_dodge(0.9)) +
+
+  labs(x = "", y = 'Regression Coefficient') +
+
+  bbplot::bbc_style() +
+  theme(plot.title = element_text(size = 20),
+        axis.title.y = element_text(size= 12),
+        plot.subtitle = element_text(size = 14, colour = "grey"),
+        legend.direction = "vertical",
+        legend.position = c(0.75, 0.95))
+AcrossSamp
+
+#partner divisions by ordinal persecutory categories
+
+HISIplot <- ControlDF %>%
+
+
+  mutate(
+    PersecLevel = ifelse(Persec > 3.66, 'High', 'Low'),
+    PartnerPolicy = fct_reorder(PartnerPolicy, scale(HI), .desc = T)
+  ) %>%
+  rename('Harmful Intent' = HI,
+         'Self Interest'  = SI) %>%
+  pivot_longer(8:9, names_to = 'attribute', values_to = 'value') %>%
+  dplyr::select(PartnerPolicy, value, attribute, PersecLevel, id) %>%
   distinct() %>%
-  ungroup() %>%
-  mutate(HI = scale(HI), SI = scale(SI),
-         Persec = scale(Persec), ICARTot = scale(ICARTot),
-         Age = scale(Age), Sum,
-         ConSum = scale(ConSum), CorrectFix = scale(CorrectFix)) %>% as.data.frame()
 
-#change partner factor level if required
+  ggplot() +
+  geom_jitter(aes(PartnerPolicy,
+                  value,
+                  color = PersecLevel,
+                  alpha = value))+
+  geom_boxplot(aes(PartnerPolicy,
+                   value,
+                   fill = PersecLevel),
+               color = "black", outlier.shape = NA) +
+  ggpubr::stat_compare_means(aes(PartnerPolicy,
+                                 value,
+                                 color = PersecLevel,
+                                 alpha = value),
+                             label = 'p.signif', size = 10,
+                             label.y.npc = c(0.7, 0.8, 0.4, 0.2, 0.4, 0.2),
+                             show.legend = F)+
 
-model.compare(lm(HI ~ ConSum + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
+  labs(y = 'Attribution Rating')+
+  scale_x_discrete(labels = c('Competitive', 'Individualist', 'Prosocial'))+
+  scale_fill_brewer(name = "Paranoia", palette = "Reds", direction = -1) +
+  scale_colour_brewer(name = "Paranoia", palette = "Reds", direction = -1) +
+  scale_alpha_continuous(guide = 'none')+
+  facet_wrap(~ attribute)+
+  coord_cartesian(clip = 'off')+
+  theme(legend.position = c(0.4, 0.1),
+        legend.direction = 'horizontal')+
+  bbplot::bbc_style()+
+  theme(legend.title = element_text(size = 12),
+        legend.position = 'bottom',
+        strip.text.x = element_text(hjust = 0.5 ,size = 14),
+        axis.text.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12))
+HISIplot
 
-C1 <- C %>% filter(PartnerPolicy == 'Prosocial')
-model.compare(lm(HI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C1, na.action = na.fail))
-C2 <- C %>% filter(PartnerPolicy == 'Individualist')
-model.compare(lm(HI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C2, na.action = na.fail))
-C3 <- C %>% filter(PartnerPolicy == 'Competitive')
-model.compare(lm(HI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C3, na.action = na.fail))
+library(patchwork)
 
-model.compare(lm(SI ~ ConSum + PartnerPolicy + Age + Sex + Persec + ICARTot + Control, data = C, na.action = na.fail))
-
-C1b <- C %>% filter(PartnerPolicy == 'Prosocial')
-model.compare(lm(SI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C1b, na.action = na.fail))
-C2b <- C %>% filter(PartnerPolicy == 'Individualist')
-model.compare(lm(SI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C2b, na.action = na.fail))
-C3b <- C %>% filter(PartnerPolicy == 'Competitive')
-model.compare(lm(SI ~ ConSum + Age + Sex + Persec + ICARTot + Control, data = C3b, na.action = na.fail))
-
-ConReg <- data.frame(
-  Estimate = c(-0.18, 0.06, -0.19, 0.00, 0.23,0),
-  UCI    = c(  -0.08, 0.37, -0.09, 0.00, 0.37,0),
-  LCI    = c(  -0.28,-0.08, -0.29, 0.00, 0.08,0),
-  p      = c(T, F, T, F, T, F),
-  Policy = c('Prosocial', 'Individualist', 'Competitive', 'Prosocial', 'Individualist', 'Competitive'),
-  Attribute = c(rep('Harmful Intent', 3), rep('Self Interest', 3)),
-  alpha  = c(1, 0.2, 1, 0, 1, 0.2)
-
-)
-
-AttributeCon <- ggplot(ConReg)+
-  geom_bar(aes(Policy, Estimate, fill = Policy, alpha = alpha), color = 'black', stat ='identity', position = 'dodge')+
-  geom_errorbar(aes(Policy, Estimate,group = Policy, ymin= LCI, ymax=UCI),
-                color = 'black', stat ='identity', position = 'dodge')+
-  labs(title = 'Attributions ~ Total Congruency',
-       y = expression(paste(beta, ' weight | 95% Confidence Interval'))
-  )+
-  facet_wrap(~ Attribute, strip.position = 'bottom')+
-  scale_fill_brewer(name = 'Partner Policy', palette = 'Dark2')+
-  scale_alpha_continuous(guide = F)+
-  coord_cartesian(ylim = c(-1, 1))+
+attSum <- ggplot(indivParmsB %>%
+                   pivot_longer(8:9, names_to = 'attribute', values_to = 'value_a') %>%
+                   dplyr::select(id, Sum, PartnerPolicy, attribute, value_a) %>%
+                   distinct())+
+  geom_smooth(aes(Sum, value_a, color = attribute), method = 'lm')+
+  ggpubr::stat_cor(aes(Sum, value_a, color = attribute),  show.legend = F, label.y.npc = 0.9)+
+  labs(x = 'Total Correct Answers in Phase 2',y= 'Attribute Rating')+
+  scale_color_brewer(palette = 'Set1', name = 'Attribute', labels = c('Harmful Intent', 'Self Interest'))+
+  facet_wrap(~PartnerPolicy)+
   theme_minimal()+
-  theme(legend.position = c(0.25, 0.8),
-        legend.direction = 'vertical',
-        legend.box.background = element_rect(colour = 'black'),
-        legend.text = element_text(size = 11),
-        axis.text.y = element_text(size = 14),
-        strip.text.x = element_text(size =16, vjust = -1),
-        axis.text.x = element_blank(),
-        axis.title.y = element_text(size = 14),
-        axis.title.x = element_blank(),
-        plot.title = element_text(size = 16),
-        panel.grid.major.x = element_blank())
-AttributeCon
+  theme(legend.position = c(0.7, 0.3),
+        strip.text.x = element_text( size = 14),
+        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size =12),
+        legend.text = element_text(size = 12),
+        panel.grid.major.x =element_blank(),
+        panel.grid.minor.x = element_blank(),
+        legend.box.background = element_rect(colour = "black"))
 
-# Figure 4 ----------------------------------------------------------------
-
-design4 <- "
-        AABB
-"
-patchwork::wrap_plots(A = pA, b = AttributeCon, design = design4) & plot_annotation(tag_levels = "A")
-
-# Generative ability ------------------------------------------------------
-
-GenReg = testdf2 %>% dplyr::select(id, Sum, ICARTot, CorrectFix, CorrectSim, alpha_m, alpha_v,beta_m, beta_v, PartnerPolicy, Age, Persec, Sex, Control) %>% distinct()
-
-GenRegP = GenReg %>% filter(PartnerPolicy == 'Prosocial')
-model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + scale(CorrectFix) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
-                   scale(Persec) + Age + Sex + Control, data = GenRegP, na.action = na.fail))
-
-GenRegI = GenReg %>% filter(PartnerPolicy == 'Individualist')
-model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + scale(CorrectFix) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
-                   scale(Persec) + Age + Sex + Control, data = GenRegI, na.action = na.fail))
-
-GenRegC = GenReg %>% filter(PartnerPolicy == 'Competitive')
-model.compare(lm(scale(CorrectSim) ~ scale(ICARTot) + offset(scale(CorrectFix)) + scale(alpha_m) + scale(alpha_v) + scale(beta_m) + scale(beta_v) +
-                   scale(Persec) + Age + Sex + Control, data = GenRegC, na.action = na.fail))
+p1 <-(AcrossSamp +theme(axis.text.y = element_text(size = 12),
+                        axis.text.x = element_text(size = 12)) |
+        Regress + theme(legend.direction = 'vertical',
+                        legend.position = c(0.1, 0.85),
+                        legend.text = element_text(size = 10),
+                        legend.key.size = unit(0.75,"line"),
+                        plot.title = element_blank(),
+                        plot.subtitle = element_blank(),
+                        axis.title.y = element_text(size = 12),
+                        axis.text.y = element_text(size = 12),
+                        axis.text.x = element_text(size = 12),
+                        legend.box.background = element_rect(colour = "black"))) /
+  HISIplot + theme(legend.text = element_text(size = 12),
+                   legend.title = element_text(size = 12),
+                   legend.position = c(0.1, 0.2),
+                   axis.text.y = element_text(size = 12),
+                   legend.direction = 'vertical',
+                   legend.box.background = element_rect(colour = "black"),
+                   strip.text.x = element_text(size = 14, face = 'bold'))
+p1/attSum &  patchwork::plot_annotation(tag_levels = "A")
 
 # Model permutation test --------------------------------------------------
 
-RecPermute <- readMat('Modelling/LaplaceFittedModels/SimulatedData/modelError_Permute.mat')
+RecPermute <- readMat('Data/SimulatedData/modelError_Permute.mat')
 PermutedParms <- as.data.frame(RecPermute$parms); colnames(PermutedParms) <- c('alpha_p', 'beta_p', 'asd_p', 'bsd_p')
 
 PermutedParms[,1] <- 1/(1+exp(-PermutedParms[,1]))*15
@@ -949,7 +963,7 @@ permuteSimA %>%
                dplyr::select(Answer, id, Trial, PartnerPolicy, Age, Sex, Control, ICARTot, Persec),
              by = c('id', 'Trial')) %>%
   plyr::join(ControlDF %>%
-               dplyr::select(id, Sum, CorrectFix),
+               dplyr::select(id, Sum, CorrectFix, ProbFix),
              by = 'id') %>%
   mutate(permuteCor = ifelse(simAPermuted == Answer, 1, 0),
          permuteFixCor = ifelse(simAFix == Answer, 1, 0)) %>%
@@ -967,13 +981,13 @@ permutedPlotP <- permutedPlot %>% filter(PartnerPolicy == 'Prosocial')
 permutedPlotC <- permutedPlot %>% filter(PartnerPolicy == 'Competative')
 permutedPlotI <- permutedPlot %>% filter(PartnerPolicy == 'Individualist')
 
-model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + scale(sumPFixCor)+
+model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + scale(ProbFix)+
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = permutedPlotP, na.action = na.fail))
-model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + scale(sumPFixCor)+
+model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + scale(ProbFix)+
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = permutedPlotI, na.action = na.fail))
-model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + scale(sumPFixCor)+
+model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) + scale(bsd_p) + scale(ProbFix)+
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = permutedPlotC, na.action = na.fail))
 
@@ -1252,7 +1266,7 @@ GenMargData <- do.call(rbind, GenMarg)
 
 
 
-# Figure S2 ---------------------------------------------------------------
+# Figure S1 ---------------------------------------------------------------
 
 ggplot(GenMargData %>%
          mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'High [6]',
@@ -1300,7 +1314,177 @@ ggplot(GenMargData %>%
         legend.title = element_text(size =14),
         legend.direction = 'horizontal')
 
-# Figure S7 ---------------------------------------------------------------
+# Figure S2 ------------------------------------------------------
+
+library(R.matlab)
+
+RecData2Parm    <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model1.mat')
+RecData4Parm    <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model2.mat')
+RecData2ParmIgn <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model3.mat')
+RecDataShrink   <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model4.mat')
+RecDataZeta     <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model5.mat')
+RecData5ParmFav <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model6.mat')
+RedData6ParmEPS2<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model7.mat')
+RecData6ParmEPS1<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model8.mat')
+RecData6ParmACT <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model9.mat')
+RecData6ParmNULL<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model10.mat')
+RecDataRW4      <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model11.mat')
+RecDataRW5UpDown<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model12.mat')
+RecDataRW53lrc  <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model13.mat')
+RecDataRW5      <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model14.mat')
+
+RecDataIndiv <- data.frame(Log = rep(NA, 697*14),
+                           Model =
+                             c(
+                               rep('FourParm', 697), rep('BetaOnly', 697),
+                               rep('ChoiceBias', 697), rep('ChoiceBias2', 697),
+                               rep('ActionBias', 697), rep('SubjIgnore', 697),
+                               rep('FavBias', 697), rep('Null', 697),
+                               rep('Shrink', 697), rep('Zeta', 697),
+                               rep('RW4', 697), rep('RW5', 697),
+                               rep('RW5UpDown', 697), rep('RW53lrc', 697)),
+                           Par = rep(NA, 697*14),
+                           id = rep(1:697,14),
+                           Type = c(rep('Bayes', 697*10), rep('Heuristic', 697*4)),
+                           ModelNum = c(rep(2, 697),rep(1, 697),rep(7, 697),rep(8, 697),
+                                        rep(9, 697),rep(3, 697),rep(6, 697),rep(10, 697),
+                                        rep(4, 697),rep(5, 697),rep(11, 697),rep(14, 697),
+                                        rep(12, 697),rep(13, 697)))
+RecDataIndiv[which(RecDataIndiv$Model=='FourParm'   ),1] <- RecData4Parm$cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='BetaOnly'   ),1] <- RecData2Parm$cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='ChoiceBias' ),1] <- RecData6ParmEPS1$cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='ChoiceBias2'),1] <- RedData6ParmEPS2$cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='ActionBias' ),1] <- RecData6ParmACT $cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='SubjIgnore' ),1] <- RecData2ParmIgn $cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='FavBias'    ),1] <- RecData5ParmFav $cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='Null'       ),1] <- RecData6ParmNULL$cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='Shrink'     ),1] <- RecDataShrink   $cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='Zeta'       ),1] <- RecDataZeta     $cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='RW4'        ),1] <- RecDataRW4      $cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='RW5'        ),1] <- RecDataRW5      $cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='RW5UpDown'  ),1] <- RecDataRW5UpDown$cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[which(RecDataIndiv$Model=='RW53lrc'    ),1] <- RecDataRW53lrc  $cbm[,,1]$output[,,1]$loglik
+RecDataIndiv[,3] <- c(rep(4, 697), rep(2, 697), rep(5, 697), rep(6, 697), rep(6, 697), rep(2, 697),
+                      rep(5, 697), rep(6, 697), rep(5, 697), rep(5, 697), rep(4, 697), rep(5, 697),
+                      rep(5, 697), rep(6, 697))
+
+RecDataIndiv %>%
+  mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
+  pivot_wider(id_cols = id, names_from = 'Model', values_from = 'BIC') %>%
+  pivot_longer(3:11, names_to = 'Model', values_to = 'BIC') %>%
+  ggplot()+
+  geom_point(aes(FourParm, BIC, color = Model), alpha = 0.75)+
+  coord_cartesian(xlim = c(25, 100), ylim = c(25, 150))+
+  geom_abline(intercept = 0, slope = 1)+
+  geom_abline(intercept = 4, slope = 1,  alpha = 0.75)+
+  geom_abline(intercept = -4, slope = 1, alpha = 0.75)+
+  geom_abline(intercept = 10, slope = 1, alpha = 0.5)+
+  geom_abline(intercept = -10, slope = 1,alpha = 0.5)+
+  labs(X = 'Winning Model BIC', y = 'BIC of other models')+
+  theme_classic()
+
+RecDataIndiv %>%
+  mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
+  ggplot()+
+  geom_jitter(aes(factor(ModelNum), BIC, color = Type),
+              alpha = 0.05, show.legend = F)+
+  stat_summary(aes(factor(ModelNum), BIC, color = Type), key_glyph = 'pointrange')+
+  geom_text(data= RecDataIndiv %>%
+              mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
+              group_by(ModelNum) %>%
+              summarise(BIC = mean(BIC)),
+            aes(factor(ModelNum), round(BIC,2), label = round(BIC,2)),
+            check_overlap = T, nudge_y = -5, fontface = 'bold')+
+  scale_color_brewer(palette = 'Set1')+
+  ggpubr::stat_compare_means(aes(factor(ModelNum), BIC, color = Type), ref.group = '2',
+                             label = 'p.signif', method = 'wilcox.test', paired = T, show.legend = F)+
+  labs(x = 'Model', y = 'BIC')+
+  ggdist::theme_tidybayes()+
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 14),
+        legend.position = c(0.2, 0.8))
+
+#hessian estimates
+hessian <- data.frame(alpha_m_h = rep(NA, 697),
+                      beta_m_h  = rep(NA, 697),
+                      alpha_v_h = rep(NA, 697),
+                      beta_v_h  = rep(NA, 697),
+                      ll        = rep(NA, 697),
+                      id = 1:697)
+for (i in 1:697) {
+  hessian[i,1] <- RecData4Parm$cbm[,,1]$math[,,1]$Ainvdiag[[i]][[1]][1,];
+  hessian[i,2] <- RecData4Parm$cbm[,,1]$math[,,1]$Ainvdiag[[i]][[1]][2,];
+  hessian[i,3] <- RecData4Parm$cbm[,,1]$math[,,1]$Ainvdiag[[i]][[1]][3,];
+  hessian[i,4] <- RecData4Parm$cbm[,,1]$math[,,1]$Ainvdiag[[i]][[1]][4,];
+  hessian[i,5] <- RecData4Parm$cbm[,,1]$output[,,1]$loglik[i,];
+}
+
+ggplot(hessian %>%
+         pivot_longer(1:4, 'var', values_to = 'val') %>%
+         plyr::join(indivParmsB %>%
+                      dplyr::select(PartnerPolicy, id), by = 'id'))+
+  geom_jitter(aes(var, val, color = PartnerPolicy))+
+  labs(x = 'Parameter', y = 'Inv(A) [Estimated Uncertainty]')
+
+ggplot(hessian %>%
+         filter(alpha_v_h > 3) %>%
+         plyr::join(indivParmsB %>%
+                      dplyr::select(PartnerPolicy, id, alpha_v, alpha_m, beta_m, beta_v), by = 'id'))+
+  geom_jitter(aes(alpha_v, ll))+
+  labs(x = 'alpha_v', y = 'loglik')+
+  geom_smooth(aes(alpha_v, ll), method = 'lm')+
+  ggpubr::stat_cor(aes(alpha_v, ll))
+
+# Figure S3 ----------------------------------------------------------------------
+
+ggplot(Intentions_guess %>% mutate(PartnerPolicy = ifelse(PartnerPolicy == 'Competative', 'Competitive', PartnerPolicy)))+
+  stat_summary(aes(Trial, Correct, fill = PartnerPolicy), geom = 'ribbon', alpha = 0.5)+
+  stat_summary(aes(Trial, Correct, color = PartnerPolicy), geom = 'line')+
+  scale_fill_brewer(palette = 'Dark2')+
+  scale_color_brewer(palette = 'Dark2')+
+  scale_y_continuous(breaks = c(0, 0.5, 1))+
+  labs(x = 'Trial', y = 'p(Correct)')+
+  theme_minimal()+
+  theme(legend.position = c(0.75, 0.25),
+        axis.title = element_text(size = 14),
+        axis.text = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 14))
+
+# Figure S4 ----------------------------------------------------------------------
+
+Intentions_guess %>%
+  filter(Final_Guess != "Please select an option") %>%
+  mutate(PartnerPolicy = ifelse(PartnerPolicy == 'Competative', 'Competitive', PartnerPolicy),
+         PersecLevel = ifelse(Persec >= 3.82, "High", "Low"),
+         ICARLevel   = ifelse(ICARTot >= 5, "High", "Low")) %>%
+  dplyr::select(Final_Guess,
+                PersecLevel,
+                ICARLevel,
+                PartnerPolicy,
+                id) %>%
+  distinct() %>%
+  ggplot() +
+  geom_bar(aes(PersecLevel, fill = Final_Guess),
+           stat = 'count',
+           position = "fill") +
+  geom_label(aes(PersecLevel, fill = Final_Guess, label = ..count..),
+             stat = 'count',
+             position = "fill",
+             vjust = 0.5,
+             show.legend = F)+
+  scale_fill_brewer(palette = "Dark2", name = "Final Guess")+
+
+  facet_wrap( ~ PartnerPolicy)+
+  bbplot::bbc_style()+
+  theme(axis.text.y = element_blank(),
+        strip.text.x = element_text(hjust = 0.5),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(0.75,"line"))
+
+# Figure S5 ---------------------------------------------------------------
 
 SimAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectSim, Sum, PartnerPolicy, id) %>% distinct())+
   geom_jitter(aes(CorrectSim, Sum, color = PartnerPolicy), alpha = 0.5)+
@@ -1320,55 +1504,33 @@ rawbaselinePlot <- ggplot(ControlDF %>%
          rename(`Harmful Intent` = HI,
                 `Self Interest` = SI) %>%
          pivot_longer(`Harmful Intent`:`Self Interest`, 'Attribution', values_to = 'Value'))+
-  geom_jitter(aes(CorrectFix, Value, color = Attribution, shape = PartnerPolicy),alpha = 0.6)+
-  geom_smooth(aes(CorrectFix, Value, color = Attribution, fill = Attribution), method = 'lm')+
+  geom_jitter(aes(ProbFix, Value, color = Attribution, shape = PartnerPolicy),alpha = 0.6, show.legend = F)+
+  geom_smooth(aes(ProbFix, Value, color = Attribution, fill = Attribution), method = 'lm')+
+  ggpubr::stat_cor(aes(ProbFix, Value, color = Attribution), label.y.npc = 'bottom', show.legend = F)+
   labs(x = expression(paste('Participant-partner baseline similarity scores given ',
                             alpha[ppt]^m,
                             beta[ppt]^m)),
        y = 'Attribution Rating')+
   ggridges::theme_ridges()+
-  theme(legend.position = c(0.1, 0.3),
+  facet_wrap(~PartnerPolicy)+
+  theme(legend.position = c(0.3, 0.4),
         legend.box.background = element_rect(color = 'black', fill = 'white'),
-        legend.title = element_blank())
+        legend.title = element_blank(),
+        strip.background.x = element_blank())
 
-Cplot <- congruency %>%
-  dplyr::select(ConSum, id, HI, SI, Persec, ICARTot, Age, Sex, Control, PartnerPolicy,
-                alpha_m, beta_m, beta_v, alpha_v) %>%
-  plyr::join(testdf2 %>% dplyr::select(id, CorrectFix), by = 'id') %>%
-  distinct() %>%
-  ungroup() %>% as.data.frame()
-
-PredAPlot <- ggplot(Cplot %>%
-         rename(Baseline = CorrectFix,
-                Learning = ConSum) %>%
-        pivot_longer(c(Baseline, Learning), 'Similarity', values_to = 'Value'))+
-  geom_density_ridges(aes(Value, Similarity, fill = PartnerPolicy), alpha = 0.75,
-                      scale = .99, quantile_lines = TRUE, quantiles = 2,
-                      vline_size = 2)+
+PredAPlot <- ggplot(testdf2 %>% dplyr::select(ProbFix, PartnerPolicy, id) %>% distinct())+
+  geom_density(aes(ProbFix, fill = PartnerPolicy), alpha = 0.75)+
   labs(x = expression(paste('Participant-partner similarity scores given ',
                             alpha[ppt]^m,
                             beta[ppt]^m)),
        y = 'Density')+
   scale_fill_brewer(palette = 'Dark2')+
   ggridges::theme_ridges()+
-  theme(legend.position = c(-0.2, 0.45), legend.title = element_blank())
+  theme(legend.position = c(0.1, 0.75), legend.title = element_blank())
 
-rawlearningPlot <- ggplot(Cplot %>%
-         rename(`Harmful Intent` = HI,
-                `Self Interest` = SI) %>%
-         pivot_longer(`Harmful Intent`:`Self Interest`, 'Attribution', values_to = 'Value'))+
-  geom_jitter(aes(ConSum, Value, color = Attribution, shape = PartnerPolicy),alpha = 0.6)+
-  geom_smooth(aes(ConSum, Value, color = Attribution, fill = Attribution), method = 'lm')+
-  labs(x = expression(paste('Participant-partner learning similarity scores given ',
-                            alpha[ppt]^m,
-                            beta[ppt]^m)),
-       y = 'Attribution Rating')+
-  ggridges::theme_ridges()+
-  theme(legend.position = 'none')
+(SimAPlot|PredAPlot) / (rawbaselinePlot) & plot_annotation(tag_levels = 'A')
 
-(SimAPlot|PredAPlot) / (rawbaselinePlot|rawlearningPlot) & plot_annotation(tag_levels = 'A')
-
-# Figure S8 ----------------------------------------------------------
+# Figure S6 ----------------------------------------------------------
 
 Dist1 <- ggplot(marginals %>% filter(alpha_lik < 0.07)) +
   geom_density(aes(index_a, y = alpha_lik, color = PartnerPolicy, group = id), size = 0.03, stat = 'identity') +
@@ -1395,30 +1557,25 @@ Dist2 <- ggplot(marginals) +
         strip.text.x = element_text(size = 14),
         legend.position = 'none')
 
-(Dist1 | Dist2)
+(Dist1 | Dist2) & plot_annotation(tag_levels = 'A')
 
-marginals %>%
-  plyr::join(
-    Phase1Partner_parms %>%
-      as.data.frame() %>%
-      rename(alpha_part = 1,
-             beta_part = 2) %>%
-      mutate(id = 1:697),
-    by = 'id') -> marginals_part
-
-# Figure S9 ---------------------------------------------------------------
+# Figure S7  ---------------------------------------------------------------
 library(sjPlot)
+data1c <- ControlDF %>% filter(PartnerPolicy == 'Competitive')
+data2c <- ControlDF %>% filter(PartnerPolicy == 'Individualist')
+data3c <- ControlDF %>% filter(PartnerPolicy == 'Prosocial')
+
 x <- ggplot(data1c)+
-  geom_smooth(aes(CorrectFix, Sum), method = 'lm', color = 'black')+
-  geom_jitter(aes(CorrectFix, Sum, color = beta_m))+
+  geom_smooth(aes(ProbFix, Sum), method = 'lm', color = 'black')+
+  geom_jitter(aes(ProbFix, Sum, color = beta_m))+
   scale_color_gradient2(low = '#7570B3', mid = 'white', high = '#1B9E77', name = expression(paste(beta[ppt]^m)),
                         breaks = c(-15, -5, 0, 5))+
   coord_cartesian(ylim = c(0, 36), xlim = c(0,36))+
   ggridges::theme_ridges()+
-  labs(x = 'Predicted Score: Competitive', y = 'True Correct Answers')+
+  labs(x = 'Predicted Score: Competitive', y = 'Real Correct Answers')+
   ggplot(data2c)+
-  geom_smooth(aes(CorrectFix, Sum), method = 'lm', color = 'black')+
-  geom_jitter(aes(CorrectFix, Sum, color = alpha_m))+
+  geom_smooth(aes(ProbFix, Sum), method = 'lm', color = 'black')+
+  geom_jitter(aes(ProbFix, Sum, color = alpha_m))+
   scale_color_gradient(low = 'white', high = '#D95F02', name = expression(paste(alpha[ppt]^m)),
                        breaks = c(0, 5, 10, 15))+
   coord_cartesian(ylim = c(0, 36), xlim = c(0,36))+
@@ -1428,8 +1585,8 @@ x <- ggplot(data1c)+
   )+
   labs(x = 'Predicted Score: Individualist')+
   ggplot(data3c)+
-  geom_smooth(aes(CorrectFix, Sum), method = 'lm', color = 'black')+
-  geom_jitter(aes(CorrectFix, Sum, color = beta_m))+
+  geom_smooth(aes(ProbFix, Sum), method = 'lm', color = 'black')+
+  geom_jitter(aes(ProbFix, Sum, color = beta_m))+
   scale_color_gradient2(low = '#7570B3', mid = 'white', high = '#1B9E77', name = expression(paste(beta[ppt]^m)))+
   coord_cartesian(ylim = c(0, 36), xlim = c(0,36))+
   ggridges::theme_ridges()+
@@ -1447,7 +1604,7 @@ parmY <- ggplot(data1c)+
   ggpubr::stat_cor(aes(beta_m, Sum), label.y.npc = 'bottom')+
   coord_cartesian(ylim = c(0, 36))+
   ggridges::theme_ridges()+
-  labs(y = 'True Correct Answers', x = expression(paste('Parameter estimate ', beta[ppt]^m)))+
+  labs(y = 'Real Correct Answers', x = expression(paste('Parameter estimate ', beta[ppt]^m)))+
   geom_text(x = -5, y = 0.5, label = 'Partner:Competitive', check_overlap = T)+
   ggplot(data2c)+
   geom_smooth(aes(alpha_m, Sum), method = 'lm', color = 'black')+
@@ -1461,7 +1618,7 @@ parmY <- ggplot(data1c)+
   theme(axis.title.y = element_blank(),
         axis.text.y = element_blank()
   )+
-  labs(y = 'True Correct Answers', x = expression(paste('Parameter estimate ', alpha[ppt]^m)))+
+  labs(y = 'Real Correct Answers', x = expression(paste('Parameter estimate ', alpha[ppt]^m)))+
   ggplot(data3c)+
   geom_smooth(aes(beta_m, Sum), method = 'lm', color = 'black')+
   geom_jitter(aes(beta_m, Sum, color = beta_m))+
@@ -1474,439 +1631,267 @@ parmY <- ggplot(data1c)+
   theme(axis.title.y = element_blank(),
         axis.text.y = element_blank()
   )+
-  labs(y = 'True Correct Answers', x = expression(paste('Parameter estimate ', beta[ppt]^m)))
+  labs(y = 'Real Correct Answers', x = expression(paste('Parameter estimate ', beta[ppt]^m)))
 
 
 (x &
     ggpubr::stat_cor(aes(CorrectFix, Sum), label.y.npc = 'bottom')&
     theme(legend.position = 'top',
           legend.direction = 'horizontal')) /
-  parmY/
-  (xCPlot | xIPlot | xPPlot)
+  parmY & plot_annotation(tag_levels = 'A')
 
-interP <- ControlDF %>% filter(PartnerPolicy == 'Prosocial')
-xP <- lm(scale(Sum) ~ scale(CorrectFix) * scale(beta_m) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
-         data = interP,
-         na.action = na.fail)
-xPPlot <- plot_model(xP, type = "pred", terms = c("CorrectFix", "beta_m [-15, 0, 15]"))+
-  scale_color_brewer(palette = 'PRGn')+
-  scale_fill_brewer(palette = 'PRGn')+
-  labs(x = 'Predicted Score', y='True Correct Answers')+
-  ggridges::theme_ridges()+
-  theme(plot.title = element_blank(),
-        axis.title.x = element_text(hjust = 0.5),
-        axis.title.y = element_text(hjust = 0.5),
-        legend.position = 'none')
-interI <- ControlDF %>% filter(PartnerPolicy == 'Individualist')
-model.compare(lm(scale(Sum) ~ scale(CorrectFix) * scale(alpha_m) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
-                 data = interI,
-                 na.action = na.fail))
-xIPlot <- plot_model(xI, type = "pred", terms = c("CorrectFix", "alpha_m [0, 5, 10, 15]"))+
-  scale_color_brewer(palette = 'Oranges')+
-  scale_fill_brewer(palette = 'Oranges')+
-  labs(x = 'Predicted Score', y='True Correct Answers')+
-  ggridges::theme_ridges()+
-  theme(plot.title = element_blank(),
-        axis.title.x = element_text(hjust = 0.5),
-        axis.title.y = element_text(hjust = 0.5),
-        legend.position = 'none')
-interC <- ControlDF %>% filter(PartnerPolicy == 'Competitive')
-xC <- lm(scale(Sum) ~ scale(CorrectFix) * scale(beta_m) + scale(Persec) + scale(ICARTot) + Age + Sex + Control,
-         data = interC,
-         na.action = na.fail)
-xCPlot <- plot_model(xC, type = "pred", terms = c("CorrectFix", "beta_m [-15, 0, 15]"))+
-  scale_color_brewer(palette = 'PRGn')+
-  scale_fill_brewer(palette = 'PRGn')+
-  labs(x = 'Predicted Score', y='True Correct Answers')+
-  ggridges::theme_ridges()+
-  theme(plot.title = element_blank(),
-        axis.title.x = element_text(hjust = 0.5),
-        axis.title.y = element_text(hjust = 0.5),
-        legend.position = 'none')
+# Deeper analysis ---------------------------------------------------------
 
-#low = '#1B9E77', mid = '#D95F02', high = '#7570B3'
+plotInt = ControlDF
+plotInt <- plotInt %>%
+  mutate(beta_v_ord = ifelse(beta_v <= 3.32, '0.69-3.32',
+                             ifelse(beta_v > 3.32 & beta_v <= 4.09, '3.32 - 4.09',
+                                    ifelse(beta_v > 4.09 & beta_v < 5.42, '4.09 - 5.42', '>5.42'))),
+         beta_v_ord = factor(beta_v_ord, levels = c('0.69-3.32', '3.32 - 4.09', '4.09 - 5.42', '>5.42'), ordered = T),
+         alpha_v_ord = ifelse(alpha_v <= 3.26, 1,
+                              ifelse(alpha_v > 3.25 & alpha_v <= 4.32, 2, 3)),
+         persec_ord = ifelse(Persec <= 1, '0-1',
+                             ifelse(Persec > 1 & Persec <= 5, '1-5', '>5')),
+         persec_ord = factor(persec_ord, levels = c('0-1', '1-5', '>5'), ordered = T),
+         base_ord   = ifelse(ProbFix <= 11.23, 1,
+                             ifelse(ProbFix > 11.23 & ProbFix < 21.05, 2,
+                                    ifelse(ProbFix > 21.05 & ProbFix < 26.8, 3, 4)))
+  )
 
-# Explainer Plot ----------------------------------------------------------
+plotIntC = ControlDF %>% filter(PartnerPolicy == 'Competitive')
+plotIntC <- plotIntC %>%
+  mutate(beta_v_ord = ifelse(beta_v <= 4.25, '0.71-4.25',
+                             ifelse(beta_v > 4.25 & beta_v <= 5.64, '4.25 - 5.64',
+                                    ifelse(beta_v > 5.64 & beta_v < 6.89, '5.64 - 6.89', '>6.89'))),
+         beta_v_ord = factor(beta_v_ord, levels = c('0.71-4.25', '4.25 - 5.64', '5.64 - 6.89', '>6.89'), ordered = T),
+         persec_ord = ifelse(Persec <= 1, '0-1',
+                             ifelse(Persec > 1 & Persec <= 5, '1-5', '>5')),
+         persec_ord = factor(persec_ord, levels = c('0-1', '1-5', '>5'), ordered = T),
+         base_ord   = ifelse(ProbFix <= 1.19, 1,
+                             ifelse(ProbFix > 1.19 & ProbFix < 5.81, 2,
+                                    ifelse(ProbFix > 5.81 & ProbFix < 12.09, 3, 4)))
+  )
 
-ggplot(GenMargData %>%
-         mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'High [6]',
-                                    ifelse(model %in% c(7, 8, 9), 'Medium [2.5]', 'Low [1]')),
-                            levels = c('Low [1]', 'Medium [2.5]', 'High [6]')),
-                `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                 ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-         filter(`Participant Type` == 'Prosocial',
-                SD == 'Low [1]')) +
-  #stat_summary(aes(index_b, beta_lik, color = PartnerPolicy, linetype = 'Posterior'), geom = 'line', size = 1.2)+
-  stat_summary(aes(index_b, betaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  #stat_summary(aes(index_b+20, betaPPT_lik), geom = 'line', size = 1.2, linetype = 1, color = '#1B9E77')+
-  labs(x = expression(paste('Simulated ', beta[par])), y = 'Density Distribution')+
-  #geom_vline(xintercept = 11.06, size = 1, color = '#1B9E77')+
+plotIntP = ControlDF %>% filter(PartnerPolicy == 'Prosocial')
+plotIntP <- plotIntP %>%
+  mutate(beta_v_ord = ifelse(beta_v <= 3.60, '0.69-3.60',
+                             ifelse(beta_v > 3.60 & beta_v <= 3.83, '3.60 - 3.83',
+                                    ifelse(beta_v > 3.83 & beta_v < 4.58, '3.83 - 4.58', '>4.58'))),
+         beta_v_ord = factor(beta_v_ord, levels = c('0.69-3.60', '3.60 - 3.83', '3.83 - 4.58', '>4.58'), ordered = T),
+         persec_ord = ifelse(Persec <= 1, '0-1',
+                             ifelse(Persec > 1 & Persec <= 5, '1-5', '>5')),
+         persec_ord = factor(persec_ord, levels = c('0-1', '1-5', '>5'), ordered = T),
+         base_ord   = ifelse(ProbFix <= 22.36, 1,
+                             ifelse(ProbFix > 22.36 & ProbFix < 28.8, 2,
+                                    ifelse(ProbFix > 28.8 & ProbFix < 34.6, 3, 4)))
+  )
 
-  annotate("segment", x = -8.5, xend = -5.5, y = 0.02, yend = 0.02, colour = "red", size=1, alpha=1, arrow=arrow(ends = 'both', type = 'closed', length = unit(0.3, 'cm')))+
-  annotate("segment", x = -5.5, xend = -7, y = 0.05, yend = 0.05, colour = "blue", size=1, alpha=1)+
-  geom_vline(xintercept = -7, size = 1, color = 'blue')+
-  annotate('text', x = -4, y = 0.05, label = expression(paste(beta[ppt]^m)),check_overlap = T, size = 12, color = 'blue')+
-  annotate('text', x = -10, y = 0.02, label = expression(paste(beta^sigma)),check_overlap = T, size = 12, color = 'red')+
+plotIntI = ControlDF %>% filter(PartnerPolicy == 'Individualist')
+plotIntI <- plotIntI %>%
+  mutate(beta_v_ord = ifelse(beta_v <= 2.78, '1.02-2.78',
+                             ifelse(beta_v > 2.78 & beta_v <= 3.55, '2.78 - 3.55',
+                                    ifelse(beta_v > 3.55 & beta_v < 4.25, '3.55 - 4.25', '>4.25'))),
+         beta_v_ord = factor(beta_v_ord, levels = c('1.02-2.78', '2.78 - 3.55', '3.55 - 4.25', '>4.25'), ordered = T),
+         persec_ord = ifelse(Persec <= 1, '0-1',
+                             ifelse(Persec > 1 & Persec <= 5, '1-5', '>5')),
+         persec_ord = factor(persec_ord, levels = c('0-1', '1-5', '>5'), ordered = T),
+         base_ord   = ifelse(ProbFix <= 19.59, 1,
+                             ifelse(ProbFix > 19.59 & ProbFix < 22.46, 2,
+                                    ifelse(ProbFix > 22.46 & ProbFix < 25.70, 3, 4)))
+  )
 
-  #annotate("segment", x = -5.5, xend = 10, y = 0.08, yend = 0.08, colour = "black", size=1, alpha=1,
-  #         arrow = arrow(length = unit(0.2, 'cm')))+
-  #annotate('text', x = 1.6, y = 0.080, label = 'Representational distance required to move to
-  #learn about the partner effectively',check_overlap = T, size = 6)+
+ggplot(plotInt) +
+  geom_jitter(aes(ProbFix, CorrectSim, color = beta_v_ord)) +
+  geom_smooth(aes(ProbFix, CorrectSim, color = beta_v_ord), formula = y ~ x + I(x^2), method = "lm")+
+  labs(y = 'simulated accuracy', x='baseline similarity')+
+  ggplot(plotInt) +
+  geom_jitter(aes(ProbFix, Sum, color = beta_v_ord)) +
+  geom_smooth(aes(ProbFix, Sum, color = beta_v_ord),formula = y ~ x + I(x^2), method = "lm")+
+  labs(y = 'real accuracy', x='baseline similarity')
 
-  #facet_grid(SD ~ `Participant Type`, label = label_both)+
-  scale_color_brewer(palette = 'Dark2', name = 'Partner SVO')+
-  scale_linetype_manual(name ='', values = c(3))+
-  scale_y_continuous(expand= c(0,0))+
-  ggdist::theme_tidybayes()+
-  coord_cartesian(xlim = c(-15, 15))+
-  theme(strip.background = element_blank(),
-        plot.title = ggtext::element_markdown(face = 'bold'),
-        axis.text = element_text(size = 24),
-        axis.title = element_text(size = 24),
-        strip.text = element_text(size = 20),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = 'none',
-        legend.text = element_text(size =20),
-        legend.title = element_text(size =20),
-        legend.direction = 'vertical')
+ggplot(plotInt) +
+  geom_jitter(aes(alpha_v, CorrectSim, color = ProbFix)) +
+  geom_smooth(aes(alpha_v, CorrectSim, color = ProbFix),method = "lm")+
+  labs(y = 'accuracy', x='alpha_v')+
+  facet_wrap(~PartnerPolicy)
 
+#1 2d plot x = beta^v ~ baseline similarity, colored by simulated accuracy
 
-ggplot(GenMargData %>%
-         mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'High [6]',
-                                    ifelse(model %in% c(7, 8, 9), 'Medium [2.5]', 'Low [1]')),
-                            levels = c('Low [1]', 'Medium [2.5]', 'High [6]')),
-                `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                 ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-         filter(`Participant Type` == 'Prosocial',
-                SD == 'Low [1]')) +
-  #stat_summary(aes(index_b, beta_lik, color = PartnerPolicy, linetype = 'Posterior'), geom = 'line', size = 1.2)+
-  stat_summary(aes(index_a+2, alphaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  #stat_summary(aes(index_b+20, betaPPT_lik), geom = 'line', size = 1.2, linetype = 1, color = '#1B9E77')+
-  labs(x = expression(paste('Simulated ', alpha[par])), y = 'Density Distribution')+
-  #geom_vline(xintercept = 1, size = 1, color = '#1B9E77')+
-
-  annotate("segment", x = 2.5+2, xend = 5.5+2, y = 0.01, yend = 0.01, colour = "red", size=1, alpha=1, arrow=arrow(ends = 'both', type = 'closed', length = unit(0.3, 'cm')))+
-  annotate("segment", x = 4+2, xend = 6+2, y = 0.03, yend = 0.03, colour = "blue", size=1, alpha=1)+
-  geom_vline(xintercept = 4+2, size = 1, color = 'blue')+
-  annotate('text', x = 7+2, y = 0.03, label = expression(paste(alpha[ppt]^m)),check_overlap = T, size = 12, color = 'blue')+
-  annotate('text', x = 7+2, y = 0.01, label = expression(paste(alpha^sigma)),check_overlap = T, size = 12, color = 'red')+
-
-  #annotate("segment", x = 5, xend = 1.2, y = 0.04, yend = 0.04, colour = "black", size=1, alpha=1,
-  #         arrow = arrow(length = unit(0.2, 'cm')))+
-  #annotate('text', x = 8.5, y = 0.040, label = 'Representational distance required to move to
-  #learn about the partner effectively',check_overlap = T, size = 5)+
-
-  #facet_grid(SD ~ `Participant Type`, label = label_both)+
-  scale_color_brewer(palette = 'Dark2', name = 'Partner SVO')+
-  scale_linetype_manual(name ='', values = c(3))+
-  scale_y_continuous(expand = c(0,0))+
-  ggdist::theme_tidybayes()+
-  coord_cartesian(xlim = c(0, 15))+
-  theme(strip.background = element_blank(),
-        plot.title = ggtext::element_markdown(face = 'bold'),
-        axis.text = element_text(size = 24),
-        axis.title = element_text(size = 24),
-        strip.text = element_text(size = 14),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = c(0.9, 0.5),
-        legend.text = element_text(size =20),
-        legend.title = element_text(size =20),
-        legend.direction = 'vertical')
-
-little <- ggplot(GenMargData %>%
-                   mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'Large SD',
-                                              ifelse(model %in% c(7, 8, 9), 'Medium SD', 'Low SD')),
-                                      levels = c('Low SD', 'Medium SD', 'Large SD')),
-                          `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                           ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-                   filter(`Participant Type` == 'Prosocial',
-                          PartnerPolicy == 'Competitive',
-                          SD == 'Low SD')) +
-  stat_summary(aes(index_b, beta_lik, color = PartnerPolicy, linetype = 'Posterior Belief'), geom = 'line', size = 1.2, color = 'black')+
-  stat_summary(aes(index_b, betaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  labs(x = expression(paste('Simulated ', beta[par])), y = 'Density Distribution')+
-  geom_vline(xintercept = 11.06, size = 1, color = '#1B9E77')+
-  #facet_grid(SD ~ .)+
-  scale_color_brewer(palette = 'Dark2', name = 'Partner SVO', guide = 'none')+
-  scale_linetype_manual(name ='', values = c(1,3))+
-  ggdist::theme_tidybayes()+
-  coord_cartesian(xlim = c(-15, 15))+
-
-  annotate("segment", x = -5.5, xend = -2, y = 0.08, yend = 0.08, colour = "black", size=1, alpha=1,
-           arrow = arrow(length = unit(0.2, 'cm')))+
-
-  annotate('text', x = 14, y = 0.07, colour = 'blue',
-           label = expression(paste(beta[ppt]^m, ' = -7')), size = 6)+
-  annotate('text', x = 14, y = 0.03, colour = 'red',
-           label = expression(paste(beta^sigma, ' = 1')), size = 6)+
-
-  theme(strip.background = element_blank(),
-        plot.title = ggtext::element_markdown(face = 'bold'),
+ggplot(plotInt %>% rename(`Simulated Accuracy` = CorrectSim)) +
+  geom_tile(aes(base_ord, beta_v_ord, fill = `Simulated Accuracy`))+
+  scale_fill_gradient2(low = 'blue', high = 'red', midpoint = 29.74)+
+  theme_minimal()+
+  labs(x = 'Baseline Similarity', y = expression(paste(beta^v)))+
+ggplot(plotInt %>% rename(`Real Accuracy` = Sum)) +
+  geom_tile(aes(base_ord, beta_v_ord, fill = `Real Accuracy`))+
+  scale_fill_gradient2(low = 'blue', high = 'red', midpoint = 29.74)+
+  theme_minimal()+
+  labs(x = 'Baseline Similarity', y = expression(paste(beta^v)))&
+  theme(legend.position = 'top',
+        legend.text = element_text(size = 14),
         axis.text = element_text(size = 14),
-        strip.text = element_text(size = 14),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = 'none',
-        legend.text = element_text(size =14),
-        legend.title = element_text(size =14),
-        legend.direction = 'vertical')
+        axis.title = element_text(size = 14))
 
-medium <- ggplot(GenMargData %>%
-                   mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'Large SD',
-                                              ifelse(model %in% c(7, 8, 9), 'Medium SD', 'Low SD')),
-                                      levels = c('Low SD', 'Medium SD', 'Large SD')),
-                          `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                           ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-                   filter(`Participant Type` == 'Prosocial',
-                          PartnerPolicy == 'Competitive',
-                          SD == 'Medium SD')) +
-  stat_summary(aes(index_b, beta_lik, color = PartnerPolicy, linetype = 'Posterior Belief'), geom = 'line', size = 1.2, color = 'black')+
-  stat_summary(aes(index_b, betaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  labs(x = expression(paste('Simulated ', beta[par])), y = 'Density Distribution')+
-  geom_vline(xintercept = 11.06, size = 1, color = '#1B9E77')+
-  #facet_grid(SD ~ .)+
-  scale_color_brewer(palette = 'Dark2', name = 'Partner SVO', guide = 'none')+
-  scale_linetype_manual(name ='', values = c(1,3))+
-  ggdist::theme_tidybayes()+
-  coord_cartesian(xlim = c(-15, 15))+
-
-  annotate("segment", x = -5.5, xend = 1, y = 0.05, yend = 0.05, colour = "black", size=1, alpha=1,
-           arrow = arrow(length = unit(0.2, 'cm')))+
-
-  annotate('text', x = 14, y = 0.07, colour = 'blue',
-           label = expression(paste(beta[ppt]^m, ' = -7')), size = 6)+
-  annotate('text', x = 14, y = 0.03, colour = 'red',
-           label = expression(paste(beta^sigma, ' = 3')), size = 6)+
-
-  theme(strip.background = element_blank(),
-        plot.title = ggtext::element_markdown(face = 'bold'),
+ggplot(plotIntC %>% rename(`Simulated Accuracy` = CorrectSim)) +
+  geom_tile(aes(base_ord, beta_v_ord, fill = `Simulated Accuracy`))+
+  scale_fill_gradient2(low = 'blue', high = 'red', midpoint = 29.44)+
+  theme_minimal()+
+  labs(x = 'Baseline Similarity', y = expression(paste(beta^v)))+
+  ggplot(plotIntC %>% rename(`Real Accuracy` = Sum)) +
+  geom_tile(aes(base_ord, beta_v_ord, fill = `Real Accuracy`))+
+  scale_fill_gradient2(low = 'blue', high = 'red', midpoint = 30.59)+
+  theme_minimal()+
+  labs(x = 'Baseline Similarity', y = expression(paste(beta^v)))&
+  theme(legend.position = 'top',
+        legend.text = element_text(size = 14),
         axis.text = element_text(size = 14),
-        axis.title = element_text(size = 14),
-        strip.text = element_text(size = 14),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.title.x = element_blank(),
-        legend.position = c(.1, 0.75),
-        legend.text = element_text(size =14),
-        legend.title = element_text(size =14),
-        legend.direction = 'vertical')
+        axis.title = element_text(size = 14))
 
-large <- ggplot(GenMargData %>%
-                  mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'Large SD',
-                                             ifelse(model %in% c(7, 8, 9), 'Medium SD', 'Low SD')),
-                                     levels = c('Low SD', 'Medium SD', 'Large SD')),
-                         `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                          ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-                  filter(`Participant Type` == 'Prosocial',
-                         PartnerPolicy == 'Competitive',
-                         SD == 'Large SD')) +
-  stat_summary(aes(index_b, beta_lik, color = PartnerPolicy, linetype = 'Posterior Belief'), geom = 'line', size = 1.2, color = 'black')+
-  stat_summary(aes(index_b, betaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  labs(x = expression(paste('Simulated ', beta[par])), y = 'Density Distribution')+
-  geom_vline(xintercept = 11.06, size = 1, color = '#1B9E77')+
-  #facet_grid(SD ~ .)+
-  scale_color_brewer(palette = 'Dark2', name = 'Partner SVO', guide = 'none')+
-  scale_linetype_manual(name ='', values = c(1,3))+
-  ggdist::theme_tidybayes()+
-  coord_cartesian(xlim = c(-15, 15))+
+#4 tertiles of paranoia
 
-  annotate("segment", x = -5.5, xend = 6, y = 0.025, yend = 0.025, colour = "black", size=1, alpha=1,
-           arrow = arrow(length = unit(0.2, 'cm')))+
+ggplot(plotInt %>% rename(`Simulated Accuracy` = CorrectSim)) +
+  geom_tile(aes(base_ord, beta_v_ord, fill = `Simulated Accuracy`)) +
+  facet_wrap(~persec_ord)+
+  #scale_fill_gradient2(low = 'blue', high = 'red', midpoint = 29.74)+
+  theme_minimal()+
+  labs(x = 'Baseline Similarity', y = expression(paste(beta^v)))
 
-  annotate('text', x = 14, y = 0.03, colour = 'blue',
-           label = expression(paste(beta[ppt]^m, ' = -7')), size = 6)+
-  annotate('text', x = 14, y = 0.01, colour = 'red',
-           label = expression(paste(beta^sigma, ' = 7')), size = 6)+
+ggplot(plotIntC %>% rename(`Simulated Accuracy` = CorrectSim)) +
+  geom_tile(aes(base_ord, beta_v_ord, fill = `Simulated Accuracy`)) +
+  facet_wrap(~persec_ord)+
+  scale_fill_gradient2(low = 'blue', high = 'red', midpoint = 29.74)+
+  theme_minimal()+
+  labs(x = 'Baseline Similarity', y = expression(paste(beta^v)))
 
-  theme(strip.background = element_blank(),
-        plot.title = ggtext::element_markdown(face = 'bold'),
+#5 marginals for each trial for parameter 8.047784 1.896067 3.869731 5.533056; 7.101715 1.288202 2.421956 5.787325
+
+trackMarg1 <- readMat('/Users/josephbarnby/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/TrackMargPPT1.mat')
+trackMarg2 <- readMat('/Users/josephbarnby/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/TrackMargPPT2.mat')
+
+extractMarg <- function(x){
+
+alpha_marg1    <- x$alpha.marg
+beta_marg1     <- x$beta.marg
+alpha_margPPT1 <- as.data.frame(matrix(NA, nrow = 36, ncol = 241))
+beta_margPPT1  <- as.data.frame(matrix(NA, nrow = 36, ncol = 241))
+
+for (i in 1:36) {
+  alpha_margPPT1[i,]    <- as.vector(x$alpha.marg2[[i]][[1]])
+  beta_margPPT1[i,]  <- as.vector(x$beta.marg2[[i]][[1]])
+}
+
+colnames(alpha_marg1) <- seq(0, 30, 0.125)
+colnames(beta_marg1) <- seq(-30, 30, 0.25)
+colnames(alpha_margPPT1) <- seq(0, 30, 0.125)
+colnames(beta_margPPT1) <- seq(-30, 30, 0.25)
+
+cbind(alpha_margPPT1 %>%
+        as.data.frame() %>%
+        mutate(trial = 1:36) %>%
+        pivot_longer(1:241, names_to = 'index_a', values_to = 'alphaPPT_lik'),
+      beta_margPPT1 %>%
+        as.data.frame() %>%
+        mutate(trial = 1:36) %>%
+        pivot_longer(1:241, names_to = 'index_b', values_to = 'betaPPT_lik')) %>%
+  rbind(cbind(alpha_marg1 %>%
+          as.data.frame() %>%
+          mutate(trial = 0) %>%
+          pivot_longer(1:241, names_to = 'index_a', values_to = 'alphaPPT_lik'),
+        beta_marg1 %>%
+          as.data.frame() %>%
+          mutate(trial = 0) %>%
+          pivot_longer(1:241, names_to = 'index_b', values_to = 'betaPPT_lik'))) %>%
+  dplyr::select(1, 2, 3, 5, 6) %>%
+  mutate(index_a = as.numeric(index_a),
+         index_b = as.numeric(index_b)) %>%
+  arrange(trial, index_a, index_b) %>%
+  distinct()
+}
+
+ppt1Marg <- trackMarg1 %>% extractMarg() %>% mutate(id = '[alpha^m: 8.047784, beta^m:1.896067, alpha^v:3.869731, beta^v:5.533056]')
+ppt2Marg <- trackMarg2 %>% extractMarg() %>% mutate(id = '[alpha^m: 7.101715, beta^m:1.288202, alpha^v:2.421956, beta^v:5.787325]')
+pptMarg <- rbind(ppt1Marg, ppt2Marg)
+
+ggplot(pptMarg, aes(index_a, alphaPPT_lik, color = trial, group = trial))+
+  geom_line()+
+  scale_color_gradient(low = '#91A8A4', high = '#228CDB')+
+  theme_minimal()+
+  labs(x = expression(paste(alpha[par])), y = 'density')+
+  facet_wrap(~id)+
+  theme(legend.text = element_text(size = 14),
         axis.text = element_text(size = 14),
-        axis.title = element_text(size = 14),
-        strip.text = element_text(size = 14),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = 'none',
-        legend.text = element_text(size =14),
-        legend.title = element_text(size =14),
-        legend.direction = 'vertical')
-
-littleM <- ggplot(GenMargData %>%
-                    mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'Large SD',
-                                               ifelse(model %in% c(7, 8, 9), 'Medium SD', 'Low SD')),
-                                       levels = c('Low SD', 'Medium SD', 'Large SD')),
-                           `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                            ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-                    filter(`Participant Type` == 'Prosocial',
-                           PartnerPolicy == 'Competitive',
-                           SD == 'Low SD')) +
-  stat_summary(aes(index_b, beta_lik, color = PartnerPolicy, linetype = 'Posterior Belief'), geom = 'line', size = 1.2, color = 'black')+
-  stat_summary(aes(index_b, betaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  labs(x = expression(paste('Simulated ', beta[par])), y = 'Density Distribution')+
-  geom_vline(xintercept = 11.06, size = 1, color = '#1B9E77')+
-  #facet_grid(SD ~ .)+
-  scale_color_brewer(palette = 'Dark2', name = 'Partner SVO', guide = 'none')+
-  scale_linetype_manual(name ='', values = c(1,3))+
-  ggdist::theme_tidybayes()+
-  coord_cartesian(xlim = c(-15, 15))+
-
-  annotate("segment", x = -5.5, xend = -2, y = 0.07, yend = 0.07, colour = "black", size=1, alpha=1,
-           arrow = arrow(length = unit(0.2, 'cm')))+
-
-  annotate('text', x = 14, y = 0.07, colour = 'blue',
-           label = expression(paste(beta[ppt]^m, ' = -7')), size = 6)+
-  annotate('text', x = 14, y = 0.03, colour = 'red',
-           label = expression(paste(beta^sigma, ' = 1')), size = 6)+
-
-  theme(strip.background = element_blank(),
-        plot.title = ggtext::element_markdown(face = 'bold'),
+        axis.title = element_text(size = 14))+
+ggplot(pptMarg, aes(index_b, betaPPT_lik, color = trial, group = trial))+
+  geom_line()+
+  scale_color_gradient(low = '#91A8A4', high = '#854798')+
+  theme_minimal()+
+  labs(x = expression(paste(beta[par])), y = 'density')+
+  facet_wrap(~id)+
+  theme(legend.text = element_text(size = 14),
         axis.text = element_text(size = 14),
-        strip.text = element_text(size = 14),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = 'none',
-        legend.text = element_text(size =14),
-        legend.title = element_text(size =14),
-        legend.direction = 'vertical')
+        axis.title = element_text(size = 14)) &
+  patchwork::plot_layout(nrow = 2)
 
-mediumM <- ggplot(GenMargData %>%
-                    mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'Large SD',
-                                               ifelse(model %in% c(7, 8, 9), 'Medium SD', 'Low SD')),
-                                       levels = c('Low SD', 'Medium SD', 'Large SD')),
-                           `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                            ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-                    filter(`Participant Type` == 'Individualist',
-                           PartnerPolicy == 'Competitive',
-                           SD == 'Low SD')) +
-  annotate("segment", x = -1, xend = 3.5, y = 0.05, yend = 0.05, colour = "black", size=1, alpha=1,
-           arrow = arrow(length = unit(0.2, 'cm')))+
 
-  annotate('text', x = 14, y = 0.07, colour = 'blue',
-           label = expression(paste(beta[ppt]^m, ' = 0')), size = 6)+
-  annotate('text', x = 14, y = 0.03, colour = 'red',
-           label = expression(paste(beta^sigma, ' = 1')), size = 6)+
+#6 Model predictions for first 18 trials given alpha; beta
 
-  stat_summary(aes(index_b, beta_lik, color = PartnerPolicy, linetype = 'Posterior Belief'), geom = 'line', size = 1.2, color = 'black')+
-  stat_summary(aes(index_b, betaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  labs(x = expression(paste('Simulated ', beta[par])), y = 'Density Distribution')+
-  geom_vline(xintercept = 11.06, size = 1, color = '#1B9E77')+
-  #facet_grid(SD ~ .)+
-  scale_color_brewer(palette = 'Dark2', name = 'Partner SVO', guide = 'none')+
-  scale_linetype_manual(name ='', values = c(1,3))+
-  ggdist::theme_tidybayes()+
-  coord_cartesian(xlim = c(-15, 15))+
+Phase1Error <- readMat('/Users/josephbarnby/My Drive/Dropbox/UoQ_BI/IntentionsGameModel/modelerrorPhase1.mat')
 
-  theme(strip.background = element_blank(),
-        plot.title = ggtext::element_markdown(face = 'bold'),
+probabilities.1 <- matrix(NA, nrow = 697, ncol = 18)
+simA            <- matrix(NA, nrow = 697, ncol = 18)
+
+for (i in 1:697){
+  probabilities.1[i,] <- as.numeric(Phase1Error$simAProb[[i]][[1]])
+  simA[i,]   <- as.numeric(Phase1Error$simA[[i]][[1]])
+}
+
+probabilities.1 <- as.data.frame(probabilities.1)
+simA <- as.data.frame(simA)
+probabilities.1$ID <- 1:697
+simA$ID <- 1:697
+colnames(simA) <- c(1:18, 'id')
+colnames(probabilities.1) <- c(1:18, 'id')
+
+probabilities.1 %>%
+  pivot_longer(1:18, names_to = 'Trial', values_to = 'Probability') -> probabilities.p.edit
+simA %>%
+  pivot_longer(1:18, names_to = 'Trial', values_to = 'simA') -> simA.edit
+
+simA.edit %>%
+  plyr::join(Intentions_BothPhase %>% dplyr::select(id, Trial, Response), by = c('id', 'Trial')) %>%
+  plyr::join(indivParmsB %>% dplyr::select(id, alpha_m, beta_m), by = 'id') %>%
+  mutate(id = as.numeric(id)) %>%
+  na.omit() %>%
+  group_by(id) %>%
+  distinct() %>%
+  plyr::join(probabilities.p.edit, by = c('id', 'Trial')) %>%
+  mutate(Trial = as.numeric(Trial),
+         CorrectP1Sim = ifelse(simA == as.numeric(Response), 1, 0),
+         CorrectP1Sim = sum(CorrectP1Sim),
+         Probability  = ifelse(Response == 1, Probability, 1-Probability),
+         CorrectProb  = sum(Probability)) %>%
+  distinct() -> testP1
+
+ggplot(testP1 %>%
+         rename(`Action Accuracy` = CorrectP1Sim,
+                `Probability Accuracy` = CorrectProb))+
+  geom_vline(xintercept = c(13.8, 12.8), color = 'black', linetype = c(1, 2))+
+  geom_density(aes(`Probability Accuracy`), fill = '#FC6471',  alpha = 0.75)+
+  geom_density(aes(`Action Accuracy`), fill = '#AFC2D5',  alpha = 0.75)+
+  coord_cartesian(xlim = c(0, 18))+
+  labs(x = 'Overall Accuracy')+
+  theme_minimal()+
+  theme(legend.position = c(0.25, 0.75),
+        legend.text = element_text(size = 14),
         axis.text = element_text(size = 14),
-        axis.title = element_text(size = 14),
-        strip.text = element_text(size = 14),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        axis.title.x = element_blank(),
-        legend.position = c(.1, 0.75),
-        legend.text = element_text(size =14),
-        legend.title = element_text(size =14),
-        legend.direction = 'vertical')
-
-largeM <- ggplot(GenMargData %>%
-                   mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'Large SD',
-                                              ifelse(model %in% c(7, 8, 9), 'Medium SD', 'Low SD')),
-                                      levels = c('Low SD', 'Medium SD', 'Large SD')),
-                          `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                           ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-                   filter(`Participant Type` == 'Competitive',
-                          PartnerPolicy == 'Competitive',
-                          SD == 'Low SD')) +
-  annotate("segment", x = 6, xend = 8.2, y = 0.05, yend = 0.05, colour = "black", size=1, alpha=1,
-           arrow = arrow(length = unit(0.2, 'cm')))+
-
-  annotate('text', x = 14, y = 0.07, colour = 'blue',
-           label = expression(paste(beta[ppt]^m, ' = 7')), size = 6)+
-  annotate('text', x = 14, y = 0.03, colour = 'red',
-           label = expression(paste(beta^sigma, ' = 1')), size = 6)+
-
-  stat_summary(aes(index_b, beta_lik, linetype = 'Posterior Belief'), geom = 'line', color = 'black', size = 1.2)+
-  stat_summary(aes(index_b, betaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  labs(x = expression(paste('Simulated ', beta[par])), y = 'Density Distribution')+
-  geom_vline(xintercept = 11.06, size = 1, color = '#1B9E77')+
-  #facet_grid(SD ~ .)+
-  scale_color_brewer(palette = 'Dark2', name = 'Partner SVO', guide = 'none')+
-  scale_linetype_manual(name ='', values = c(1,3))+
-  ggdist::theme_tidybayes()+
-  coord_cartesian(xlim = c(-15, 15))+
-  theme(strip.background = element_blank(),
-        plot.title = ggtext::element_markdown(face = 'bold'),
+        axis.title = element_text(size = 14))+
+ggplot(testP1)+
+  geom_density(aes(Probability, color = as.numeric(Trial)))+
+  coord_cartesian(xlim = c(0, 1))+
+  labs(x = 'Average probability each trial')+
+  theme_minimal()+
+  theme(legend.position = c(0.25, 0.75),
+        legend.text = element_text(size = 14),
         axis.text = element_text(size = 14),
-        axis.title = element_text(size = 14),
-        strip.text = element_text(size = 14),
-        axis.title.y = element_blank(),
-        axis.line.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_blank(),
-        legend.position = 'none',
-        legend.text = element_text(size =14),
-        legend.title = element_text(size =14),
-        legend.direction = 'vertical')
-
-start
-
-(little/medium/large)
-
-(littleM/mediumM/largeM)
-
-ggplot()+
-  ggplot(GenMargData %>%
-           mutate(SD = factor(ifelse (model %in% c(2, 4, 6), 'Large SD',
-                                      ifelse(model %in% c(7, 8, 9), 'Medium SD', 'Low SD')),
-                              levels = c('Low SD', 'Medium SD', 'Large SD')),
-                  `Participant Type`     = ifelse (model %in% c(1, 2, 7), 'Prosocial',
-                                                   ifelse(model %in% c(3, 4, 8), 'Individualist', 'Competitive'))) %>%
-           filter(`Participant Type` == 'Competitive',
-                  PartnerPolicy == 'Competitive',
-                  SD == 'Low SD')) +
-  #stat_summary(aes(index_b, beta_lik, linetype = 'Posterior Belief'), geom = 'line', color = 'black', size = 1.2)+
-  #stat_summary(aes(index_b, betaPPT_lik, linetype = 'Prior Belief'), geom = 'line', size = 1.2)+
-  theme_void()+
-  annotate('text', x = 5, y = 5, label = expression(paste('Increasing ', beta[ppt]^m)), color= 'blue', size = 12)
-
-
-ggplot(Simplex, aes(as.numeric(alpha_m), as.numeric(beta_m)))+
-  geom_point(aes(color = Scale01(Prosocial)), alpha = 0.75)+
-  scale_color_gradient2(low = '#1B9E77', mid = '#D95F02', high = '#7570B3',midpoint = 0.5,
-                        breaks = c(0, 0.5, 1), name = 'SVO Archetype',
-                        labels = c('Competitive', 'Individualist', 'Prosocial'))+
-  #geom_smooth(data = groupplot.parms2, aes(alpha_m*(100/15), beta_m*(100/20)), method = 'lm')+
-  geom_point(x = 40, y = -50, color ='blue', size = 5)+
-  geom_point(x = 40, y = -50, color ='red', size = 10, fill = NA, shape = 21)+
-  geom_point(x = 10, y = 50, color ='black', size = 5)+
-  annotate('segment', x = 38, y = -44, color = 'black', xend = 12, yend = 43, size = 1, arrow = arrow(length = unit(0.3, 'cm'), type = 'closed'))+
-  #annotate('text', x = 30, y = 50, color = 'black', size = 4, label = "Partner's joint parameter values", fontface = 'bold')+
-  #annotate('text', x = 63, y = -50, color = 'black', size = 4, label = "Participant's joint parameter values", fontface = 'bold')+
-  scale_x_continuous(breaks = c(0, 33, 66, 100), labels = c(0, 5, 10, 15))+
-  scale_y_continuous(breaks = c(-100, -50, 0, 50, 100), labels = c(-20, -10, 0, 10, 20))+
-  labs(x = expression(paste(alpha[ppt]^m)), y = expression(paste(beta[ppt]^m)))+
-  theme_void()+
-  theme(axis.title = element_text(size = 24),
-        axis.text = element_text(size = 24),
-        legend.text = element_text(size = 20),
-        legend.title = element_text(size = 20, margin = margin(1,3,3,3), face = 'bold'))
-
+        axis.title = element_text(size = 14))
 
