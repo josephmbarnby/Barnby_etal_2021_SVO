@@ -196,7 +196,7 @@ SPlot <- ggplot(Simplex, aes(as.numeric(alpha_m), as.numeric(beta_m)))+
   theme(axis.title = element_text(size = 18),
         axis.text = element_text(size = 14),
         legend.text = element_text(size = 14),
-        legend.position = 'none',
+        legend.position = 'top',
         legend.direction = 'horizontal',
         legend.title = element_blank(),
         plot.margin = margin(1,3,1,3, unit = 'cm'))

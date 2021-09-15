@@ -133,29 +133,6 @@ model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex 
                  na.action = na.fail))
 ```
 
-```{r Prosocial Accuracy, message = F, error = F, warning = F}
-#within partner assessments
-data1P <- ControlDF %>% filter(PartnerPolicy=='Prosocial')
-model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
-                 data = data1P,
-                 na.action = na.fail))
-```
-
-```{r Individualist Accuracy, message = F, error = F, warning = F}
-data1I <- ControlDF %>% filter(PartnerPolicy=='Individualist')
-model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
-                 data = data1I,
-                 na.action = na.fail))
-```
-
-```{r Competitive Accuracy, message = F, error = F, warning = F}
-data1C <- ControlDF %>% filter(PartnerPolicy=='Competitive')
-model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
-                 data = data1C,
-                 na.action = na.fail))
-
-```
-
 #### Partner Classification
 
 ```{r, warning = F, error = F, message=F}
@@ -280,21 +257,6 @@ model.compare(lm(scale(ICARTot) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix
                    scale(Persec) + scale(Age) + Sex + Control,
                  data =ControlDF,
                  na.action = na.fail))
-
-#Within partners
-model.compare(lm(scale(Sum) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix) +
-                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
-                 data = data1P,
-                 na.action = na.fail))
-model.compare(lm(scale(Sum) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix) +
-                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
-                 data = data1I,
-                 na.action = na.fail))
-model.compare(lm(scale(Sum) ~ scale(alpha_v) * scale(beta_v) * scale(ProbFix) +
-                   scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
-                 data = data1C,
-                 na.action = na.fail))
-
 ```
 
 Post-hoc exploration
@@ -326,6 +288,7 @@ l5      <- lm(scale(Sum) ~ scale(ProbFix) * scale(alpha_v) * scale(beta_v) + sca
            data = ControlDF,
            na.action = na.fail)
 summary(l5)
+confint(l5)
 ```
 
 #### Intention Attributions
