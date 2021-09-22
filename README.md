@@ -18,15 +18,15 @@ ID | Trial | Option1 Self | Option1 Other | Option2 Self | Option2 Other | PPT C
 
 
 
-Matlab files of models to enable the CBM (Piray et al., 2018) function - for a guide on how to use these series of useful function, see Payam's useful guide online here https://payampiray.github.io/cbm.
+Matlab files of models are constructed to enable use of Concurrent Bayesian Modelling (CBM; Piray et al., 2018) functions - for a guide on how to use these series of useful function, see Payam's guide online here https://payampiray.github.io/cbm.
 
-Each model is contained in a single .m file.
+Each computational model is contained in a single .m file.
 
-Each model is fitted using Laplace approximation and concurrently compaired in the Master '.m' file.
+Each computational model is first fitted using Laplace approximation (cbm_lap) and concurrently compared (cbm_hbi) in the Master '.m' file.
 
-Modelling requires the installation of the 'parfor' function in the parralell toolbox in Matlab. 
+Speedier modelling requires the installation of the 'parfor' function in the parralell toolbox in Matlab. I have already written the master .m file to include parralell processing, although the cbm_lap function does not require it (it will however take _significantly_ longer without it).
 
-<b> NB: Model fitting for the Bayesian models will take a long time. </b> Adjust your expectations accordingly. 
+<b> NB: Model fitting for the Bayesian models (even using ParFor) will take a long time. </b> Adjust your expectations accordingly. 
 
 Approximate time commitment for fitting 697 participants using 8 cores:
 
