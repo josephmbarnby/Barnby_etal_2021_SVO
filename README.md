@@ -49,4 +49,4 @@ Required packages for each analyses are loaded and listed at the start.
 
 <i>NB: Graphical abstract and Figure 1 made using Adobe Illustrator </i>
 
-If you want to simply recheck the models used for the main regression models reported in the paper, all you need to do is open 'LiveCodeReproduction.Rmd' in your favorite IDE and click each code chunk. All code chunks in this script are listed in the same order as that in the manuscript.
+If you want to simply recheck the models used for the main regression models reported in the paper, all you need to do is open 'Analysis_Reproduction_Workbook.Rmd' in your favorite IDE and click each code chunk. Alternatively, you can check out the knitted html of the output for a quick check. All code chunks in this script are listed in the same order as that in the manuscript and model numbers correspond to those in the manuscript text.
