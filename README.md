@@ -18,7 +18,7 @@ ID | Trial | Option1 Self | Option1 Other | Option2 Self | Option2 Other | PPT C
 
 
 
-Matlab files of models are constructed to enable use of Concurrent Bayesian Modelling (CBM; Piray et al., 2018) functions - for a guide on how to use these series of useful function, see Payam's guide online here https://payampiray.github.io/cbm.
+Matlab files of models are constructed to enable use of Concurrent Bayesian Modelling (CBM; Piray et al., 2018) functions - for a guide on how to use these series of useful functions see Payam's blog online here https://payampiray.github.io/cbm.
 
 Each computational model is contained in a single .m file.
 
