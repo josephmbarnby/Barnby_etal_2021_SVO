@@ -1,4 +1,4 @@
-# How to 
+# Introduction
 Models and data describing participant social learning about different partner Social-Value Orientations (SVO) given their own SVO preferences in Barnby et al., 2021.
 
 ![Abstract](GraphicalAbstract.png)
