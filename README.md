@@ -1,4 +1,4 @@
-# IntentionsGameModel
+# Introduction
 Models and data describing participant social learning about different partner Social-Value Orientations (SVO) given their own SVO preferences in Barnby et al., 2021.
 
 ![Abstract](GraphicalAbstract.png)
@@ -18,15 +18,15 @@ ID | Trial | Option1 Self | Option1 Other | Option2 Self | Option2 Other | PPT C
 
 
 
-Matlab files of models to enable the CBM (Piray et al., 2018) function - for a guide on how to use these series of useful function, see Payam's useful guide online here https://payampiray.github.io/cbm.
+Matlab files of models are constructed to enable use of Concurrent Bayesian Modelling (CBM; Piray et al., 2018) functions - for a guide on how to use these series of useful functions see Payam's blog online here https://payampiray.github.io/cbm.
 
-Each model is contained in a single .m file.
+Each computational model is contained in a single .m file.
 
-Each model is fitted using Laplace approximation and concurrently compaired in the Master '.m' file.
+Each computational model is first fitted using Laplace approximation (cbm_lap) and concurrently compared (cbm_hbi) in the Master '.m' file.
 
-Modelling requires the installation of the 'parfor' function in the parralell toolbox in Matlab. 
+Speedier modelling requires the installation of the 'parfor' function in the parralell toolbox in Matlab. I have already written the master .m file to include parralell processing, although the cbm_lap function does not require it (it will however take _significantly_ longer without it).
 
-<b> NB: Model fitting for the Bayesian models will take a long time. </b> Adjust your expectations accordingly. 
+<b> NB: Model fitting for the Bayesian models (even using ParFor) will take a long time. </b> Adjust your expectations accordingly. 
 
 Approximate time commitment for fitting 697 participants using 8 cores:
 
@@ -49,4 +49,4 @@ Required packages for each analyses are loaded and listed at the start.
 
 <i>NB: Graphical abstract and Figure 1 made using Adobe Illustrator </i>
 
-If you want to simply recheck the models used for the main regression models reported in the paper, all you need to do is open 'LiveCodeReproduction.Rmd' in your favorite IDE and click each code chunk. All code chunks in this script are listed in the same order as that in the manuscript.
+If you want to simply recheck the models used for the main regression models reported in the paper, all you need to do is open 'Analysis_Reproduction_Workbook.Rmd' in your favorite IDE and click each code chunk. Alternatively, you can check out the knitted html of the output for a quick check. All code chunks in this script are listed in the same order as that in the manuscript and model numbers correspond to those in the manuscript text.
