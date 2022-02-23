@@ -1,0 +1,105 @@
+% Barnby & Dayan (2021) Inequality Aversion and Paranoia
+%
+% Joe Barnby j.barnby@uq.edu.au 2021
+
+% basic model free q learning model
+% Q values represent partner policies
+% Q1 = prosocial, Q2 = individualistic, Q3 = competitive
+% estimates learnign rate, tau, memory, zeta (lapse)
+% While participants make binary choices (1,2), this model instead
+% accepts whether that choice was prosocial (1), individualistic (2), or
+% competitive (3).
+
+%% Model
+
+function [F] = Model_15(parms,data)
+
+    nd_alpha    = parms(1);
+    nd_tau      = parms(3);
+    nd_lr       = parms(4);
+    nd_omega    = parms(5);
+
+    alpha   = 15*(1./(1+exp(-nd_alpha)));
+    beta    = parms(2);
+    tau     = exp(nd_tau);
+    lr      = (1./(1+exp(-nd_lr)));
+    omega   = (1./(1+exp(-nd_omega)));
+
+
+    T1      = 18;
+    T2      = T1 + 36;       %number of trials
+    k       = 3;             %number of options
+    Q       = nan(T2+1,k);     %values of each choice each trial %1 = prosocial, 2 = individual, 3 = competitive
+
+    lik2   = 0;
+    lik1   = 0;
+    
+% Phase 1 participants choices
+
+    for t=1:T1
+
+    s1 = data(t, 3)/10;
+    o1 = data(t, 4)/10;
+    s2 = data(t, 5)/10;
+    o2 = data(t, 6)/10;
+
+    actual_choice = data(t, 7);
+
+    val1 = (alpha*s1) + (beta*max(s1-o1,0)) ; 
+    val2 = (alpha*s2) + (beta*max(s2-o2,0)) ;
+
+    pchoose1=(1./(1+exp(-(val1 - val2)))); % probability of 1
+
+        if (actual_choice==1)
+            lik1 = lik1 + log(pchoose1); % log likelihood of 1
+        else
+            lik1 = lik1 + log(1-pchoose1);
+        end
+
+    end
+    
+    %partner consonance
+    conso = mode(data(1:18, 9));
+    if conso == 1
+    Q(18, 1) = omega;
+    Q(18, 2) = (1-omega)/2;
+    Q(18, 3) = (1-omega)/2;
+    elseif conso == 2    
+    Q(18, 2) = omega;
+    Q(18, 1) = (1-omega)/2;
+    Q(18, 3) = (1-omega)/2;
+    elseif conso == 3
+    Q(18, 3) = omega;
+    Q(18, 1) = (1-omega)/2;
+    Q(18, 2) = (1-omega)/2;
+    end
+    
+    
+% Phase 2 participants heuristic guesses
+
+    for t = (T1+1):T2 
+
+        choice = data(t,9);
+        outcome= data(t,10);
+        % copy forward action values to next trial
+        Q(t, :) = Q(t-1, :);
+
+        pe      = outcome - Q(t,choice);
+
+        % update option chosen on this trial for next trial's choice
+        Q(t,choice) = Q(t,choice) + (lr * pe);  
+        
+        C1 = exp(Q(t-1, 1)/tau);
+        C2 = exp(Q(t-1, 2)/tau);
+        C3 = exp(Q(t-1, 3)/tau);
+        tot = C1 + C2 + C3;
+
+        pr      = (exp(Q(t-1, choice)/tau)/tot);
+        lik2    = lik2 + log(pr);
+
+    end
+    
+F = lik1 + lik2 + eps;
+
+end
+

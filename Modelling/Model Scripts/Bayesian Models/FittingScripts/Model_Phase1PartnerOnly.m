@@ -11,7 +11,7 @@
 
 function[F] = Model_Phase1PartnerOnly(parms, data)
 
-res = 15;
+res = 30;
 
    % Initialise
 
@@ -28,14 +28,14 @@ T2   = 36;  % trials for phase 1
 
     % Phase 1 choices of the participant
     
-for t=1:T2
+for t=18:(T2+18)
     
 s1 = data(t, 3)/10;
 o1 = data(t, 4)/10;
 s2 = data(t, 5)/10;
 o2 = data(t, 6)/10;
 
-actual_choice = data(t, 7);
+actual_choice = data(t, 8);
 
 val1 = (alpha*s1) + (beta*max(s1-o1,0)) ; 
 val2 = (alpha*s2) + (beta*max(s2-o2,0)) ;

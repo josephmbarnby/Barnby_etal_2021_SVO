@@ -85,6 +85,22 @@ pairComparisons %>%
   summarise(sd = sd(value)*100, value = mean(value)*100)
 ```
 
+```{r ratio of participants in each group}
+
+ControlDF %>% 
+  group_by(PartnerPolicy) %>% 
+  summarise(alpha = psych::describe(alpha_m))
+
+summary(lm(scale(alpha_m) ~ PartnerPolicy, data = ControlDF))
+
+ControlDF %>% 
+  group_by(PartnerPolicy) %>% 
+  summarise(beta = psych::describe(beta_m))
+
+summary(lm(scale(beta_m) ~ PartnerPolicy, data = ControlDF))
+
+```
+
 Model 1a
 
 ```{r Prosocial-Competitive, message = F, error = F, warning = F}
@@ -158,6 +174,7 @@ Model 3b
 ```{r, message = F, error = F, warning = F}
 data1I <- ControlDF %>% filter(PartnerPolicy == 'Individualist')
 
+psych::describe(data1I$Sum)
 model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
                  data = data1I,
                  na.action = na.fail))
@@ -169,6 +186,7 @@ Model 3c
 ```{r, message = F, error = F, warning = F}
 data1P <- ControlDF %>% filter(PartnerPolicy == 'Prosocial')
 
+psych::describe(data1P$Sum)
 model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
                  data = data1P,
                  na.action = na.fail))
@@ -180,6 +198,7 @@ Model 3d
 ```{r, message = F, error = F, warning = F}
 data1C <- ControlDF %>% filter(PartnerPolicy == 'Competitive')
 
+psych::describe(data1C$Sum)
 model.compare(lm(scale(Sum) ~ scale(Persec) + scale(ICARTot) + scale(Age) + Sex + Control,
                  data = data1C,
                  na.action = na.fail))

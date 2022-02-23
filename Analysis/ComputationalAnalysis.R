@@ -16,6 +16,7 @@ library(foreach)
 library(R.matlab)
 library(patchwork)
 library(ggridges)
+library(bbplot)
 
 source("Analysis/Functions.R")
 source("Analysis/Phase1SimulationR.R")
@@ -74,7 +75,12 @@ simulatedHeur_DF <- do.call(rbind, simulatedHeur)
 
 # Matlab data load --------------------------------------------
 
-# load data from matlab
+#Check full model comparison on n = 100 data
+RecDataCheck <- readMat('Modelling/Fit_CBM/hbi_models_CHECK.mat')
+RecDataCheck$cbm[,,1]$output[,,1]$model.frequency # Model 2 is the winning model
+RecDataCheck$cbm[,,1]$output[,,1]$exceedance.prob # Model 2 is the winning model
+
+# load data from matlab from last stage comparison (n = 697 data)
 RecData <- readMat('Modelling/Fit_CBM/hbi_models3.mat')
 
 RecData.frequency  <- RecData$cbm[,,1]$output[,,1]$model.frequency
@@ -369,16 +375,20 @@ topdesign = "
 Ptop <- patchwork::wrap_plots(A = P3, B = p_alpha_edit2, c = p_beta_edit2, design = topdesign)
 Ptop
 
-# Check phase 2 parms against phase 1 ----------------------------------------
+# Check simultaneous parms against individually fitted parms ----------------------------------------
 
 Phase1 <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Phase1Estimate.mat')
 Phase2 <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model2.mat')
+Phase2_only <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Phase2Estimate.mat')
 
 Phase1_parms <-   Phase1$cbm[,,1]$output[,,1]$parameters
 Phase1_parms[,1] <- (1/(1+exp(-Phase1_parms[,1])))*15
 
 Phase2_parms <-   Phase2$cbm[,,1]$output[,,1]$parameters
 Phase2_parms[,1] <- (1/(1+exp(-Phase2_parms[,1])))*15
+
+Phase2Only_parms <-   Phase2_only$cbm[,,1]$output[,,1]$parameters
+Phase2Only_parms[,1] <- (1/(1+exp(-Phase2Only_parms[,1])))*15
 
 parmCheck <- Phase1_parms %>%
   as.data.frame() %>%
@@ -389,11 +399,49 @@ parmCheck <- Phase1_parms %>%
                as.data.frame() %>%
                rename(alpha_phase2 = 1,
                       beta_phase2 = 2) %>%
-               mutate(id = 1:697), by = 'id')
+               mutate(id = 1:697), by = 'id') %>%
+  plyr::join(Phase2Only_parms %>%
+               as.data.frame() %>%
+             rename(alpha_phase2only = 1,
+                    beta_phase2only = 2) %>%
+               mutate(id = 1:697), by = 'id') %>%
+                 dplyr::select(id, 1, 2, 4, 5, 8, 9)
 
-ggcorrplot::ggcorrplot(cor(parmCheck %>% dplyr::select(1:2, 4:5)), type = 'upper')
-cor.test(parmCheck$alpha_phase1, parmCheck$alpha_phase2)
-cor.test(parmCheck$beta_phase1, parmCheck$beta_phase2)
+ggcorrplot::ggcorrplot(cor(parmCheck %>% dplyr::select(2:7)), type = 'upper', lab = T)
+
+alpha_phase1check <- cor.test(parmCheck$alpha_phase1, parmCheck$alpha_phase2)
+beta_phase1check <- cor.test(parmCheck$beta_phase1, parmCheck$beta_phase2)
+
+alpha_phase2check <- cor.test(parmCheck$alpha_phase2, parmCheck$alpha_phase2only)
+beta_phase2check <- cor.test(parmCheck$beta_phase2, parmCheck$beta_phase2only)
+
+#Permutation difference
+r.diff.beta = beta_phase1check$estimate - beta_phase2check$estimate
+r.diff.alpha= alpha_phase1check$estimate - alpha_phase2check$estimate
+nreps <- 10000
+r.random <- matrix(NA, nrow = nreps, ncol = 6)
+
+for (i in 1:nreps) {
+  Ya <- parmCheck$beta_phase1
+  Xa <- sample(parmCheck$beta_phase2, length(parmCheck$beta_phase2), replace = FALSE)
+  Yb <- parmCheck$beta_phase2only
+  Xb <- sample(parmCheck$beta_phase2, length(parmCheck$beta_phase2), replace = FALSE)
+  Yc <- parmCheck$alpha_phase1
+  Xc <- sample(parmCheck$alpha_phase2, length(parmCheck$alpha_phase2), replace = FALSE)
+  Yd <- parmCheck$alpha_phase2only
+  Xd <- sample(parmCheck$alpha_phase2, length(parmCheck$alpha_phase2), replace = FALSE)
+  r.random[i,1] <- cor(Xa,Ya)
+  r.random[i,2] <- cor(Xb,Yb)
+  r.random[i,3] <- cor(Xc,Yc)
+  r.random[i,4] <- cor(Xd,Yd)
+  r.random[i,5] <- r.random[i,2] - r.random[i,1]
+  r.random[i,6] <- r.random[i,4] - r.random[i,3]
+}
+
+probb <- length(r.random[,5][r.random[,5] >= r.diff.beta])/nreps
+proba <- length(r.random[,6][r.random[,6] >= r.diff.alpha])/nreps
+cat("Probability randomized r >= r.obt",proba)
+cat("Probability randomized r >= r.obt",probb)
 
 # Model Error and assessment -------------------------------------------------------
 
@@ -757,81 +805,84 @@ plot(bootnet::estimateNetwork(
 
 # Figure 2 ----------------------------------------------------------------
 
-Regressions <- tribble(
-  ~Trait,   ~Value, ~CILow, ~CIHigh, ~Partner,
-  'Paranoia',              -0.04, -0.13,  0.02,  "Overall",
-  'General Cognition',      0.07,  0.00,  0.15,  "Overall",
-  'Paranoia',              -0.10, -0.23,  0.03, "Prosocial",
-  'General Cognition',      0.19,  0.06,  0.32, "Prosocial",
-  'Paranoia',              -   0,     0,     0, "Individualist",
-  'General Cognition',      0.18,  0.06,  0.30, "Individualist",
-  'Paranoia',              -0.12, -0.26,  0.02, "Competitive",
-  'General Cognition',      0.  ,     0,     0, "Competitive",
-  'Across Sample',          0.00, 0.00, 0.00, "Prosocial",
-  'Across Sample',         -1.38,-1.52,-1.23, "Individualist",
-  'Across Sample',         -0.56,-0.71,-0.42, "Competitive"
-)
+# These plots were originally located in the preprint V2 and removed
+# following peer review
 
-Regress <- Regressions %>%
-  filter(Trait != "Across Sample") %>%
-  mutate(Partner = factor(Partner,
-                          levels = c("Overall",
-                                     "Prosocial",
-                                     "Individualist",
-                                     "Competitive")),
-         Trait   = factor(Trait,
-                          levels = c("Paranoia",
-                                     "General Cognition"))) %>%
-
-  ggplot()+
-  geom_bar(
-    aes(Trait, Value, fill = Partner), stat = 'identity', position = 'dodge') +
-  geom_errorbar(
-    aes(Trait, Value, ymin = CILow,ymax = CIHigh,group = Partner
-    ), width = 0.2, position = position_dodge(0.9)) +
-
-  scale_fill_manual(values = c("#E7298A" , "#7570B3", "#D95F02", "#1B9E77"))+
-
-  labs(x = "",
-       y = "Regression Coefficient") +
-
-  bbplot::bbc_style() +
-  theme(plot.title = element_text(size = 20),
-        plot.subtitle = element_text(size = 14, colour = "grey"),
-        legend.direction = "vertical",
-        legend.position = c(0.75, 0.95),
-        axis.title.y = element_text(size = 10 ))
-Regress
-
-AcrossSamp <- Regressions %>%
-
-  filter(Trait == "Across Sample") %>%
-  mutate(Partner = factor(Partner,
-                          levels = c("Prosocial", "Competitive", "Individualist"))) %>%
-
-  ggplot()+
-  geom_bar(
-    aes(Partner, Value),
-    fill = "#2E86C1",
-    stat = 'identity',
-    position = 'dodge') +
-  geom_errorbar(
-    aes(Partner, Value,
-        ymin = CILow,
-        ymax = CIHigh
-    ),
-    width = 0.2,
-    position = position_dodge(0.9)) +
-
-  labs(x = "", y = 'Regression Coefficient') +
-
-  bbplot::bbc_style() +
-  theme(plot.title = element_text(size = 20),
-        axis.title.y = element_text(size= 12),
-        plot.subtitle = element_text(size = 14, colour = "grey"),
-        legend.direction = "vertical",
-        legend.position = c(0.75, 0.95))
-AcrossSamp
+#Regressions <- tribble(
+#  ~Trait,   ~Value, ~CILow, ~CIHigh, ~Partner,
+#  'Paranoia',              -0.04, -0.13,  0.02,  "Overall",
+#  'General Cognition',      0.07,  0.00,  0.15,  "Overall",
+#  'Paranoia',              -0.10, -0.23,  0.03, "Prosocial",
+#  'General Cognition',      0.19,  0.06,  0.32, "Prosocial",
+#  'Paranoia',              -   0,     0,     0, "Individualist",
+#  'General Cognition',      0.18,  0.06,  0.30, "Individualist",
+#  'Paranoia',              -0.12, -0.26,  0.02, "Competitive",
+#  'General Cognition',      0.  ,     0,     0, "Competitive",
+#  'Across Sample',          0.00, 0.00, 0.00, "Prosocial",
+#  'Across Sample',         -1.38,-1.52,-1.23, "Individualist",
+#  'Across Sample',         -0.56,-0.71,-0.42, "Competitive"
+#)
+#
+#Regress <- Regressions %>%
+#  filter(Trait != "Across Sample") %>%
+#  mutate(Partner = factor(Partner,
+#                          levels = c("Overall",
+#                                     "Prosocial",
+#                                     "Individualist",
+#                                     "Competitive")),
+#         Trait   = factor(Trait,
+#                          levels = c("Paranoia",
+#                                     "General Cognition"))) %>%
+#
+#  ggplot()+
+#  geom_bar(
+#    aes(Trait, Value, fill = Partner), stat = 'identity', position = 'dodge') +
+#  geom_errorbar(
+#    aes(Trait, Value, ymin = CILow,ymax = CIHigh,group = Partner
+#    ), width = 0.2, position = position_dodge(0.9)) +
+#
+#  scale_fill_manual(values = c("#E7298A" , "#7570B3", "#D95F02", "#1B9E77"))+
+#
+#  labs(x = "",
+#       y = "Regression Coefficient") +
+#
+#  bbplot::bbc_style() +
+#  theme(plot.title = element_text(size = 20),
+#        plot.subtitle = element_text(size = 14, colour = "grey"),
+#        legend.direction = "vertical",
+#        legend.position = c(0.75, 0.95),
+#        axis.title.y = element_text(size = 10 ))
+#Regress
+#
+#AcrossSamp <- Regressions %>%
+#
+#  filter(Trait == "Across Sample") %>%
+#  mutate(Partner = factor(Partner,
+#                          levels = c("Prosocial", "Competitive", "Individualist"))) %>%
+#
+#  ggplot()+
+#  geom_bar(
+#    aes(Partner, Value),
+#    fill = "#2E86C1",
+#    stat = 'identity',
+#    position = 'dodge') +
+#  geom_errorbar(
+#    aes(Partner, Value,
+#        ymin = CILow,
+#        ymax = CIHigh
+#    ),
+#    width = 0.2,
+#    position = position_dodge(0.9)) +
+#
+#  labs(x = "", y = 'Regression Coefficient') +
+#
+#  bbplot::bbc_style() +
+#  theme(plot.title = element_text(size = 20),
+#        axis.title.y = element_text(size= 12),
+#        plot.subtitle = element_text(size = 14, colour = "grey"),
+#        legend.direction = "vertical",
+#        legend.position = c(0.75, 0.95))
+#AcrossSamp
 
 #partner divisions by ordinal persecutory categories
 
@@ -839,7 +890,7 @@ HISIplot <- ControlDF %>%
 
 
   mutate(
-    PersecLevel = ifelse(Persec > 3.66, 'High', 'Low'),
+    PersecLevel = ifelse(Persec > 1, 'High', 'Low'),
     PartnerPolicy = fct_reorder(PartnerPolicy, scale(HI), .desc = T)
   ) %>%
   rename('Harmful Intent' = HI,
@@ -904,26 +955,13 @@ attSum <- ggplot(indivParmsB %>%
         panel.grid.minor.x = element_blank(),
         legend.box.background = element_rect(colour = "black"))
 
-p1 <-(AcrossSamp +theme(axis.text.y = element_text(size = 12),
-                        axis.text.x = element_text(size = 12)) |
-        Regress + theme(legend.direction = 'vertical',
-                        legend.position = c(0.1, 0.85),
-                        legend.text = element_text(size = 10),
-                        legend.key.size = unit(0.75,"line"),
-                        plot.title = element_blank(),
-                        plot.subtitle = element_blank(),
-                        axis.title.y = element_text(size = 12),
-                        axis.text.y = element_text(size = 12),
-                        axis.text.x = element_text(size = 12),
-                        legend.box.background = element_rect(colour = "black"))) /
-  HISIplot + theme(legend.text = element_text(size = 12),
+  (HISIplot + theme(legend.text = element_text(size = 12),
                    legend.title = element_text(size = 12),
                    legend.position = c(0.1, 0.2),
                    axis.text.y = element_text(size = 12),
                    legend.direction = 'vertical',
                    legend.box.background = element_rect(colour = "black"),
-                   strip.text.x = element_text(size = 14, face = 'bold'))
-p1/attSum &  patchwork::plot_annotation(tag_levels = "A")
+                   strip.text.x = element_text(size = 14, face = 'bold')))/attSum &  patchwork::plot_annotation(tag_levels = "A")
 
 # Model permutation test --------------------------------------------------
 
@@ -991,14 +1029,14 @@ model.compare(lm(scale(sumPCor) ~ scale(alpha_m) + scale(beta_m) + scale(asd_p) 
                    scale(Persec) + scale(ICARTot) + Age + Sex + Control,
                  data = permutedPlotC, na.action = na.fail))
 
-# Calculate final marginals -----------------------------------------------
+# Change in belief assessment -----------------------------------------------
 
-MargSims <- readMat('Modelling/LaplaceFittedModels/SimulatedData/modelError_Generative.mat')
+MargSims <- readMat('Data/SimulatedData/modelError_Generative.mat')
 
-alpha_marg    <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
-beta_marg     <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
-alpha_margPPT <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
-beta_margPPT  <- as.data.frame(matrix(NA, nrow = 697, ncol = 241))
+alpha_marg    <- as.data.frame(matrix(NA, nrow = 697, ncol = 121))
+beta_marg     <- as.data.frame(matrix(NA, nrow = 697, ncol = 121))
+alpha_margPPT <- as.data.frame(matrix(NA, nrow = 697, ncol = 121))
+beta_margPPT  <- as.data.frame(matrix(NA, nrow = 697, ncol = 121))
 
 for (i in 1:697) {
   alpha_marg[i,]    <- as.vector(MargSims$alpha.m2[[i]][[1]])
@@ -1007,31 +1045,76 @@ for (i in 1:697) {
   beta_margPPT[i,]  <- as.vector(MargSims$beta.m[[i]][[1]])
 }
 
-colnames(alpha_marg) <- seq(0, 30, 0.125)
-colnames(beta_marg) <- seq(-30, 30, 0.25)
-colnames(alpha_margPPT) <- seq(0, 30, 0.125)
-colnames(beta_margPPT) <- seq(-30, 30, 0.25)
+colnames(alpha_marg) <- seq(0, 30, 0.25)
+colnames(beta_marg) <- seq(-30, 30, 0.5)
+colnames(alpha_margPPT) <- seq(0, 30, 0.25)
+colnames(beta_margPPT) <- seq(-30, 30, 0.5)
 
 cbind(alpha_marg %>%
         mutate(id = 1:697) %>%
-        pivot_longer(1:241, names_to = 'index_a', values_to = 'alpha_lik'),
+        pivot_longer(1:121, names_to = 'index_a', values_to = 'alpha_lik'),
       beta_marg %>%
         mutate(id = 1:697) %>%
-        pivot_longer(1:241, names_to = 'index_b', values_to = 'beta_lik'),
+        pivot_longer(1:121, names_to = 'index_b', values_to = 'beta_lik'),
       alpha_margPPT %>%
         mutate(id = 1:697) %>%
-        pivot_longer(1:241, names_to = 'index_a', values_to = 'alphaPPT_lik'),
+        pivot_longer(1:121, names_to = 'index_a', values_to = 'alphaPPT_lik'),
       beta_margPPT %>%
         mutate(id = 1:697) %>%
-        pivot_longer(1:241, names_to = 'index_b', values_to = 'betaPPT_lik')) %>%
+        pivot_longer(1:121, names_to = 'index_b', values_to = 'betaPPT_lik')) %>%
   dplyr::select(1, 2, 3, 9, 5, 6, 12) %>%
 
-  plyr::join(congruency, by = 'id') %>%
+  plyr::join(ControlDF, by = 'id') %>%
   dplyr::select(id, index_a, index_b, alpha_lik, beta_lik, alphaPPT_lik, betaPPT_lik,Sum, Persec, Age, Sex, Control, ICARTot,HI, SI, PartnerPolicy, alpha_m, beta_m, beta_v, alpha_v) %>%
   mutate(index_a = as.numeric(index_a),
          index_b = as.numeric(index_b)) %>%
   arrange(id, index_a, index_b) %>%
   distinct() -> marginals
+
+sum_marginals <- marginals %>%
+  group_by(id) %>%
+  plyr::join(ControlDF %>% dplyr::select(id, CorrectFix), by = 'id') %>%
+  mutate(index_b_Partner = which.max(beta_lik),
+         index_b_Partner = seq(-30, 30, 0.5)[index_b_Partner],
+         index_a_Partner = which.max(alpha_lik),
+         index_a_Partner = seq(0, 30, 0.25)[index_a_Partner],
+         Similarity      = CorrectFix+1,
+         delta_beta = (abs(index_b_Partner - beta_m) * (1/Similarity)),
+         delta_alpha = (abs(index_a_Partner - alpha_m) * (1/Similarity))) %>%
+  dplyr::select(-index_a:-betaPPT_lik) %>%
+  ungroup() %>%
+  mutate(across(.col = c(Sum:Persec, ICARTot), scale),
+         across(.col = c(Sum:Persec, ICARTot), as.vector)) %>%
+  distinct()
+
+sum_marginals %>%
+  group_by(PartnerPolicy) %>%
+  summarise(movement_b = mean(delta_beta),
+            movement_bsd = sd(delta_beta),
+            movement_a = mean(delta_alpha),
+            movement_asd = sd(delta_alpha))
+
+summary(aov(delta_alpha ~ PartnerPolicy, data = sum_marginals))
+summary(aov(delta_beta  ~ PartnerPolicy, data = sum_marginals))
+
+#Aux Model 1
+summary(lm(delta_alpha ~ PartnerPolicy, data = sum_marginals))
+cor_test(data = sum_marginals, x = 'delta_alpha',   y = 'CorrectFix')
+model.compare(lm(scale(delta_alpha) ~ Persec * PartnerPolicy + ICARTot + Age + Sex + Control, data = sum_marginals, na.action = na.fail))
+
+#Aux Model 2
+summary(lm(delta_beta ~ PartnerPolicy, data = sum_marginals))
+cor_test(data = sum_marginals,   x = 'delta_beta', y = 'CorrectFix')
+model.compare(lm(scale(delta_beta) ~ Persec * PartnerPolicy + ICARTot + Age + Sex + Control, data = sum_marginals, na.action = na.fail))
+
+# Aux Model 3a
+model.compare(lm(scale(HI) ~ scale(delta_beta) + ICARTot + Age + Sex + Control, data = sum_marginals, na.action = na.fail))
+# Aux Model 3b
+model.compare(lm(scale(HI) ~ scale(delta_alpha) + ICARTot + Age + Sex + Control, data = sum_marginals, na.action = na.fail))
+# Aux Model 4a
+model.compare(lm(scale(SI) ~ scale(delta_beta) + ICARTot + Age + Sex + Control, data = sum_marginals, na.action = na.fail))
+# Aux Model 4b
+model.compare(lm(scale(SI) ~ scale(delta_alpha) + ICARTot + Age + Sex + Control, data = sum_marginals, na.action = na.fail))
 
 # Partner Parameter Check -------------------------------------------------
 
@@ -1314,105 +1397,14 @@ ggplot(GenMargData %>%
         legend.title = element_text(size =14),
         legend.direction = 'horizontal')
 
-# Figure S2 ------------------------------------------------------
-
-library(R.matlab)
-
-RecData2Parm    <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model1.mat')
-RecData4Parm    <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model2.mat')
-RecData2ParmIgn <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model3.mat')
-RecDataShrink   <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model4.mat')
-RecDataZeta     <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model5.mat')
-RecData5ParmFav <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model6.mat')
-RedData6ParmEPS2<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model7.mat')
-RecData6ParmEPS1<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model8.mat')
-RecData6ParmACT <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model9.mat')
-RecData6ParmNULL<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model10.mat')
-RecDataRW4      <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model11.mat')
-RecDataRW5UpDown<- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model12.mat')
-RecDataRW53lrc  <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model13.mat')
-RecDataRW5      <- readMat('Modelling/LaplaceFittedModels/FittedParameters/lap_Model14.mat')
-
-RecDataIndiv <- data.frame(Log = rep(NA, 697*14),
-                           Model =
-                             c(
-                               rep('FourParm', 697), rep('BetaOnly', 697),
-                               rep('ChoiceBias', 697), rep('ChoiceBias2', 697),
-                               rep('ActionBias', 697), rep('SubjIgnore', 697),
-                               rep('FavBias', 697), rep('Null', 697),
-                               rep('Shrink', 697), rep('Zeta', 697),
-                               rep('RW4', 697), rep('RW5', 697),
-                               rep('RW5UpDown', 697), rep('RW53lrc', 697)),
-                           Par = rep(NA, 697*14),
-                           id = rep(1:697,14),
-                           Type = c(rep('Bayes', 697*10), rep('Heuristic', 697*4)),
-                           ModelNum = c(rep(2, 697),rep(1, 697),rep(7, 697),rep(8, 697),
-                                        rep(9, 697),rep(3, 697),rep(6, 697),rep(10, 697),
-                                        rep(4, 697),rep(5, 697),rep(11, 697),rep(14, 697),
-                                        rep(12, 697),rep(13, 697)))
-RecDataIndiv[which(RecDataIndiv$Model=='FourParm'   ),1] <- RecData4Parm$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='BetaOnly'   ),1] <- RecData2Parm$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='ChoiceBias' ),1] <- RecData6ParmEPS1$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='ChoiceBias2'),1] <- RedData6ParmEPS2$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='ActionBias' ),1] <- RecData6ParmACT $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='SubjIgnore' ),1] <- RecData2ParmIgn $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='FavBias'    ),1] <- RecData5ParmFav $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='Null'       ),1] <- RecData6ParmNULL$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='Shrink'     ),1] <- RecDataShrink   $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='Zeta'       ),1] <- RecDataZeta     $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='RW4'        ),1] <- RecDataRW4      $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='RW5'        ),1] <- RecDataRW5      $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='RW5UpDown'  ),1] <- RecDataRW5UpDown$cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[which(RecDataIndiv$Model=='RW53lrc'    ),1] <- RecDataRW53lrc  $cbm[,,1]$output[,,1]$loglik
-RecDataIndiv[,3] <- c(rep(4, 697), rep(2, 697), rep(5, 697), rep(6, 697), rep(6, 697), rep(2, 697),
-                      rep(5, 697), rep(6, 697), rep(5, 697), rep(5, 697), rep(4, 697), rep(5, 697),
-                      rep(5, 697), rep(6, 697))
-
-RecDataIndiv %>%
-  mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
-  pivot_wider(id_cols = id, names_from = 'Model', values_from = 'BIC') %>%
-  pivot_longer(3:11, names_to = 'Model', values_to = 'BIC') %>%
-  ggplot()+
-  geom_point(aes(FourParm, BIC, color = Model), alpha = 0.75)+
-  coord_cartesian(xlim = c(25, 100), ylim = c(25, 150))+
-  geom_abline(intercept = 0, slope = 1)+
-  geom_abline(intercept = 4, slope = 1,  alpha = 0.75)+
-  geom_abline(intercept = -4, slope = 1, alpha = 0.75)+
-  geom_abline(intercept = 10, slope = 1, alpha = 0.5)+
-  geom_abline(intercept = -10, slope = 1,alpha = 0.5)+
-  labs(X = 'Winning Model BIC', y = 'BIC of other models')+
-  theme_classic()
-
-RecDataIndiv %>%
-  mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
-  ggplot()+
-  geom_jitter(aes(factor(ModelNum), BIC, color = Type),
-              alpha = 0.05, show.legend = F)+
-  stat_summary(aes(factor(ModelNum), BIC, color = Type), key_glyph = 'pointrange')+
-  geom_text(data= RecDataIndiv %>%
-              mutate(BIC = -2 * Log + log(54) * as.numeric(Par)) %>%
-              group_by(ModelNum) %>%
-              summarise(BIC = mean(BIC)),
-            aes(factor(ModelNum), round(BIC,2), label = round(BIC,2)),
-            check_overlap = T, nudge_y = -5, fontface = 'bold')+
-  scale_color_brewer(palette = 'Set1')+
-  ggpubr::stat_compare_means(aes(factor(ModelNum), BIC, color = Type), ref.group = '2',
-                             label = 'p.signif', method = 'wilcox.test', paired = T, show.legend = F)+
-  labs(x = 'Model', y = 'BIC')+
-  ggdist::theme_tidybayes()+
-  theme(axis.title = element_text(size = 14),
-        axis.text = element_text(size = 14),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 14),
-        legend.position = c(0.2, 0.8))
-
-#hessian estimates
+#hessian estimates to quantify uncertainty over the fitting of each parameter for the winning model
 hessian <- data.frame(alpha_m_h = rep(NA, 697),
                       beta_m_h  = rep(NA, 697),
                       alpha_v_h = rep(NA, 697),
                       beta_v_h  = rep(NA, 697),
                       ll        = rep(NA, 697),
                       id = 1:697)
+
 for (i in 1:697) {
   hessian[i,1] <- RecData4Parm$cbm[,,1]$math[,,1]$Ainvdiag[[i]][[1]][1,];
   hessian[i,2] <- RecData4Parm$cbm[,,1]$math[,,1]$Ainvdiag[[i]][[1]][2,];
@@ -1437,7 +1429,7 @@ ggplot(hessian %>%
   geom_smooth(aes(alpha_v, ll), method = 'lm')+
   ggpubr::stat_cor(aes(alpha_v, ll))
 
-# Figure S3 ----------------------------------------------------------------------
+# Figure S2 ----------------------------------------------------------------------
 
 ggplot(Intentions_guess %>% mutate(PartnerPolicy = ifelse(PartnerPolicy == 'Competative', 'Competitive', PartnerPolicy)))+
   stat_summary(aes(Trial, Correct, fill = PartnerPolicy), geom = 'ribbon', alpha = 0.5)+
@@ -1453,7 +1445,7 @@ ggplot(Intentions_guess %>% mutate(PartnerPolicy = ifelse(PartnerPolicy == 'Comp
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 14))
 
-# Figure S4 ----------------------------------------------------------------------
+# Figure S3 ----------------------------------------------------------------------
 
 Intentions_guess %>%
   filter(Final_Guess != "Please select an option") %>%
@@ -1484,7 +1476,7 @@ Intentions_guess %>%
         legend.text = element_text(size = 10),
         legend.key.size = unit(0.75,"line"))
 
-# Figure S5 ---------------------------------------------------------------
+# Figure S4 ---------------------------------------------------------------
 
 SimAPlot <- ggplot(testdf2 %>% dplyr::select(CorrectSim, Sum, PartnerPolicy, id) %>% distinct())+
   geom_jitter(aes(CorrectSim, Sum, color = PartnerPolicy), alpha = 0.5)+
@@ -1530,7 +1522,7 @@ PredAPlot <- ggplot(testdf2 %>% dplyr::select(ProbFix, PartnerPolicy, id) %>% di
 
 (SimAPlot|PredAPlot) / (rawbaselinePlot) & plot_annotation(tag_levels = 'A')
 
-# Figure S6 ----------------------------------------------------------
+# Figure S5 ----------------------------------------------------------
 
 Dist1 <- ggplot(marginals %>% filter(alpha_lik < 0.07)) +
   geom_density(aes(index_a, y = alpha_lik, color = PartnerPolicy, group = id), size = 0.03, stat = 'identity') +
@@ -1559,7 +1551,7 @@ Dist2 <- ggplot(marginals) +
 
 (Dist1 | Dist2) & plot_annotation(tag_levels = 'A')
 
-# Figure S7  ---------------------------------------------------------------
+# Figure S6  ---------------------------------------------------------------
 library(sjPlot)
 data1c <- ControlDF %>% filter(PartnerPolicy == 'Competitive')
 data2c <- ControlDF %>% filter(PartnerPolicy == 'Individualist')
@@ -1640,6 +1632,25 @@ parmY <- ggplot(data1c)+
           legend.direction = 'horizontal')) /
   parmY & plot_annotation(tag_levels = 'A')
 
+
+# Figure S7 ---------------------------------------------------------------
+
+ggplot(ControlDF %>%
+         pivot_longer(c(alpha_m, beta_m), 'Preference', values_to = 'Value'),
+       aes(Value, PartnerPolicy, fill = PartnerPolicy))+
+    ggridges::geom_density_ridges(aes(Value, fct_rev(PartnerPolicy), fill = PartnerPolicy),
+                                point_color = 'black', alpha = 0.7, show.legend = F,
+                                stat = "binline", binwidth = 0.5, scale = .8)+
+      ggridges::geom_density_ridges(aes(Value, fct_rev(PartnerPolicy)), fill= NA, color = NA,
+                                point_color = 'black', alpha = 0.7, show.legend = F,
+                                position = position_points_jitter(height = 0, yoffset = -0.05), jittered_points = TRUE,
+                                point_shape = '|', point_size = 3, point_alpha = 1, scale = .9)+
+  facet_wrap(~Preference, scales ='free')+
+  scale_fill_brewer(palette = 'Dark2')+
+  theme_ridges()+
+  theme(axis.title.y = element_blank(),
+        strip.background.x = element_blank())
+
 # Deeper analysis ---------------------------------------------------------
 
 plotInt = ControlDF
@@ -1700,14 +1711,19 @@ plotIntI <- plotIntI %>%
                                     ifelse(ProbFix > 22.46 & ProbFix < 25.70, 3, 4)))
   )
 
-ggplot(plotInt) +
-  geom_jitter(aes(ProbFix, CorrectSim, color = beta_v_ord)) +
-  geom_smooth(aes(ProbFix, CorrectSim, color = beta_v_ord), formula = y ~ x + I(x^2), method = "lm")+
-  labs(y = 'simulated accuracy', x='baseline similarity')+
-  ggplot(plotInt) +
-  geom_jitter(aes(ProbFix, Sum, color = beta_v_ord)) +
-  geom_smooth(aes(ProbFix, Sum, color = beta_v_ord),formula = y ~ x + I(x^2), method = "lm")+
-  labs(y = 'real accuracy', x='baseline similarity')
+ggplot(plotInt, aes(ProbFix, Sum, color = factor(alpha_v_ord))) +
+  geom_jitter() +
+  geom_smooth(formula = y ~ x, method = "lm")+
+  labs(y = 'Total Correct', x='baseline similarity')+
+  ggpubr::stat_cor(label.y.npc = 'bottom', method = 'spearman', show.legend = F)+
+  scale_color_brewer(type = 'seq', name = expression(alpha[v]), palette = 'Greens')+
+  ggplot(plotInt,aes(ProbFix, Sum, color = beta_v_ord)) +
+  geom_jitter() +
+  geom_smooth(formula = y ~ x, method = "lm")+
+  labs(y = 'Total Correct', x='baseline similarity')+
+  scale_color_brewer(type = 'seq', name = expression(beta[v]), palette = 'Blues')+
+  ggpubr::stat_cor(label.y.npc = 'bottom', method = 'spearman', show.legend = F)&
+  theme_minimal()
 
 ggplot(plotInt) +
   geom_jitter(aes(alpha_v, CorrectSim, color = ProbFix)) +
